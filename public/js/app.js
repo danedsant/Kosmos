@@ -377,6 +377,96 @@ function loadView(viewName) {
 window.openModal = function(id) { document.getElementById(id).classList.add('active'); }
 window.closeModal = function(id) { document.getElementById(id).classList.remove('active'); }
 
+window.mostrarAlerta = function(mensaje, tipo = 'info', titulo = '') {
+    return new Promise(resolve => {
+        const iconWrap = document.getElementById('dialog-icon');
+        const titleEl = document.getElementById('dialog-title');
+        const msgEl = document.getElementById('dialog-message');
+        const actionsEl = document.getElementById('dialog-actions');
+
+        const icons = {
+            success: '✓',
+            danger: '✕',
+            warning: '⚠',
+            info: 'ℹ'
+        };
+
+        const defaultTitles = {
+            success: 'Operación Exitosa',
+            danger: 'Error',
+            warning: 'Atención',
+            info: 'Información'
+        };
+
+        if (iconWrap) {
+            iconWrap.className = `dialog-icon-wrap ${tipo}`;
+            iconWrap.textContent = icons[tipo] || 'ℹ';
+        }
+        if (titleEl) titleEl.textContent = titulo || defaultTitles[tipo] || 'Notificación';
+        if (msgEl) msgEl.textContent = mensaje;
+
+        if (actionsEl) {
+            actionsEl.innerHTML = `
+                <button type="button" class="btn btn-${tipo === 'danger' ? 'danger' : 'primary'}" id="dialog-btn-accept">
+                    Entendido
+                </button>
+            `;
+            const acceptBtn = document.getElementById('dialog-btn-accept');
+            acceptBtn.onclick = () => {
+                closeModal('dialog-modal');
+                resolve();
+            };
+        }
+
+        openModal('dialog-modal');
+    });
+};
+
+window.mostrarConfirmacion = function(mensaje, titulo = '¿Confirmar Acción?', tipo = 'danger', confirmText = 'Confirmar', cancelText = 'Cancelar') {
+    return new Promise(resolve => {
+        const iconWrap = document.getElementById('dialog-icon');
+        const titleEl = document.getElementById('dialog-title');
+        const msgEl = document.getElementById('dialog-message');
+        const actionsEl = document.getElementById('dialog-actions');
+
+        if (iconWrap) {
+            iconWrap.className = `dialog-icon-wrap ${tipo}`;
+            iconWrap.textContent = tipo === 'danger' ? '🗑️' : (tipo === 'warning' ? '⚠' : '?');
+        }
+        if (titleEl) titleEl.textContent = titulo;
+        if (msgEl) msgEl.textContent = mensaje;
+
+        if (actionsEl) {
+            actionsEl.innerHTML = `
+                <button type="button" class="btn btn-secondary-outline" id="dialog-btn-cancel">
+                    ${cancelText}
+                </button>
+                <button type="button" class="btn btn-${tipo === 'danger' ? 'danger' : (tipo === 'warning' ? 'warning' : 'primary')}" id="dialog-btn-confirm">
+                    ${confirmText}
+                </button>
+            `;
+            const cancelBtn = document.getElementById('dialog-btn-cancel');
+            const confirmBtn = document.getElementById('dialog-btn-confirm');
+
+            cancelBtn.onclick = () => {
+                closeModal('dialog-modal');
+                resolve(false);
+            };
+            confirmBtn.onclick = () => {
+                closeModal('dialog-modal');
+                resolve(true);
+            };
+        }
+
+        openModal('dialog-modal');
+    });
+};
+
+// Sobrescritura segura de window.alert nativo
+window.alert = function(msg) {
+    return window.mostrarAlerta(msg, 'info', 'Aviso del Sistema');
+};
+
 async function apiGet(endpoint) {
     const res = await fetch(`${API_URL}/${endpoint}`);
     return await res.json();
@@ -596,14 +686,14 @@ document.getElementById('event-form').addEventListener('submit', async (e) => {
         payload.id = editId;
         const res = await apiPut('eventos.php', payload);
         if (res.status !== 'success') {
-            alert(res.message || 'No se pudo actualizar el evento.');
+            await mostrarAlerta(res.message || 'No se pudo actualizar el evento.', 'danger', 'Error al Actualizar');
             return;
         }
     } else {
         payload.organizadorId = user.id;
         const res = await apiPost('eventos.php', payload);
         if (res.status !== 'success') {
-            alert(res.message || 'No se pudo crear el evento.');
+            await mostrarAlerta(res.message || 'No se pudo crear el evento.', 'danger', 'Error al Crear');
             return;
         }
     }
@@ -613,7 +703,8 @@ document.getElementById('event-form').addEventListener('submit', async (e) => {
 });
 
 window.eliminarEvento = async function(id) {
-    if (!confirm('Seguro que deseas eliminar este evento?')) return;
+    const conf = await mostrarConfirmacion('Esta acción eliminará el evento del sistema de forma permanente.', '¿Eliminar Evento?', 'danger', 'Sí, eliminar');
+    if (!conf) return;
     await apiDelete('eventos.php', { id });
     fetchEventos();
 };
@@ -793,7 +884,8 @@ document.getElementById('user-form').addEventListener('submit', async (e) => {
 });
 
 window.eliminarUsuario = async function(id) {
-    if (!confirm('Seguro que deseas eliminar este usuario?')) return;
+    const conf = await mostrarConfirmacion('El usuario será eliminado permanentemente del sistema.', '¿Eliminar Usuario?', 'danger', 'Sí, eliminar');
+    if (!conf) return;
     await apiDelete('usuarios.php', { id });
     fetchUsuarios();
 };
@@ -885,7 +977,8 @@ if (ponenteForm) ponenteForm.addEventListener('submit', async (e) => {
 });
 
 window.eliminarPonente = async function(id) {
-    if (!confirm('Seguro que deseas eliminar este ponente?')) return;
+    const conf = await mostrarConfirmacion('El ponente será eliminado del sistema permanentemente.', '¿Eliminar Ponente?', 'danger', 'Sí, eliminar');
+    if (!conf) return;
     await apiDelete('usuarios.php', { id });
     fetchPONENTES();
 };
@@ -944,7 +1037,8 @@ window.marcarAsistencia = async function(id, eventoId) {
 };
 
 window.cancelarInscripcion = async function(id, eventoId) {
-    if (!confirm('Cancelar esta inscripcion?')) return;
+    const conf = await mostrarConfirmacion('¿Seguro que deseas cancelar esta inscripción?', 'Cancelar Inscripción', 'warning', 'Sí, cancelar');
+    if (!conf) return;
     await apiDelete('inscripciones.php', { id, eventoId });
     fetchInscripciones();
 };
@@ -1025,7 +1119,7 @@ document.getElementById('cert-form').addEventListener('submit', async (e) => {
     }
     await apiPost('certificados.php', payload);
     closeModal('cert-modal');
-    alert('Certificado generado!');
+    await mostrarAlerta('El certificado digital ha sido emitido con éxito.', 'success', 'Certificado Generado');
 });
 
 // ================= INSCRIPCION PARTICIPANTE ================= //
@@ -1036,10 +1130,10 @@ window.inscribirse = async function(eventoId) {
         participanteId: user.id
     });
     if (res.status === 'success') {
-        alert('Inscripcion exitosa!');
+        await mostrarAlerta('Te has inscrito satisfactoriamente en el evento.', 'success', 'Inscripción Exitosa');
         fetchEventos();
     } else {
-        alert(res.message || 'Error al inscribirse.');
+        await mostrarAlerta(res.message || 'Error al inscribirse.', 'danger', 'Error de Inscripción');
     }
 };
 
@@ -1071,7 +1165,8 @@ async function fetchMiInscripciones() {
 }
 
 window.cancelarMiInscripcion = async function(id, eventoId) {
-    if (!confirm('Cancelar esta inscripcion?')) return;
+    const conf = await mostrarConfirmacion('¿Seguro que deseas cancelar tu inscripción a este evento?', 'Cancelar Inscripción', 'warning', 'Sí, cancelar');
+    if (!conf) return;
     await apiDelete('inscripciones.php', { id, eventoId });
     fetchMiInscripciones();
 };
@@ -1330,15 +1425,15 @@ window.ejecutarDesdeSelector = function() {
         param += `&mes=${mes}`;
     } else if (num === 2 || num === 3 || num === 6) {
         const eventoId = document.getElementById('sel-evento').value;
-        if (!eventoId) { alert('Seleccione un evento'); return; }
+        if (!eventoId) { mostrarAlerta('Por favor seleccione un evento de la lista.', 'warning', 'Selección Requerida'); return; }
         param += `&eventoId=${eventoId}`;
     } else if (num === 4) {
         const ponenteId = document.getElementById('sel-ponente').value;
-        if (!ponenteId) { alert('Seleccione un ponente'); return; }
+        if (!ponenteId) { mostrarAlerta('Por favor seleccione un ponente de la lista.', 'warning', 'Selección Requerida'); return; }
         param += `&ponenteId=${ponenteId}`;
     } else if (num === 8) {
         const tipoId = document.getElementById('sel-tipo').value;
-        if (!tipoId) { alert('Seleccione un tipo'); return; }
+        if (!tipoId) { mostrarAlerta('Por favor seleccione un tipo de evento.', 'warning', 'Selección Requerida'); return; }
         param += `&tipoId=${tipoId}`;
     }
 
@@ -1588,7 +1683,7 @@ window.descargarXMLCertificado = function(certId) {
 window.abrirVisualizadorDiploma = async function(certId) {
     const res = await apiGet(`certificados.php?id=${certId}`);
     if (res.status !== 'success' || !res.data) {
-        alert('No se pudo cargar la información del certificado.');
+        await mostrarAlerta('No se pudo cargar la información del certificado.', 'danger', 'Error de Carga');
         return;
     }
     const cert = res.data;
@@ -1720,7 +1815,7 @@ window.descargarDiplomaPDF = function() {
     const { nombre, apellido, cedula, nombreEvento, tipo, codigo, emision, horas, tipoCert, logoBase64, qrBase64 } = currentDiplomaData;
 
     if (!window.jspdf || !window.jspdf.jsPDF) {
-        alert('La librería jsPDF se está inicializando, por favor intente nuevamente en unos segundos.');
+        mostrarAlerta('La librería jsPDF se está inicializando, por favor intente nuevamente en unos segundos.', 'info', 'Preparando PDF');
         return;
     }
 
