@@ -31,6 +31,16 @@ function getEventoNombre(id) {
     return ev ? ev.nombre : id || 'N/A';
 }
 
+function getPonentesNombres(ponentesIds) {
+    if (!ponentesIds || !Array.isArray(ponentesIds) || ponentesIds.length === 0) {
+        return 'Por asignar';
+    }
+    const nombres = ponentesIds
+        .map(id => getUsuarioNombre(id))
+        .filter(n => n && n !== 'N/A');
+    return nombres.length > 0 ? nombres.join(', ') : 'Por asignar';
+}
+
 async function loadEventosCache() {
     const data = await apiGet('eventos.php');
     if (data.status === 'success') eventosCache = data.data;
@@ -270,11 +280,11 @@ views.editar_perfil = `
     </div>
     <div class="card" style="max-width:500px">
         <h3 class="card-title">${KosmosAuth.getFullName()}</h3>
-        <div class="card-detail">Rol: ${user.rol}</div>
-        <div class="card-detail">Cedula: ${user.cedula || 'N/A'}</div>
-        ${user.especialidad ? `<div class="card-detail">Especialidad: ${user.especialidad}</div>` : ''}
-        ${user.institucion ? `<div class="card-detail">Institucion: ${user.institucion}</div>` : ''}
-        ${user.profesion ? `<div class="card-detail">Profesion: ${user.profesion}</div>` : ''}
+        <div class="card-detail"><strong>Rol:</strong> ${user.rol}</div>
+        <div class="card-detail"><strong>Cédula:</strong> ${user.cedula || 'N/A'}</div>
+        ${user.especialidad ? `<div class="card-detail"><strong>Especialidad:</strong> ${user.especialidad}</div>` : ''}
+        ${user.institucion ? `<div class="card-detail"><strong>Institución:</strong> ${user.institucion}</div>` : ''}
+        ${user.profesion ? `<div class="card-detail"><strong>Profesión:</strong> ${user.profesion}</div>` : ''}
     </div>
     <div style="max-width:500px;margin-top:1.5rem">
         <h3 style="margin-bottom:1rem;color:var(--text-secondary)">Editar Datos</h3>
@@ -475,7 +485,7 @@ async function fetchEventos() {
     if (!grid) return;
     grid.innerHTML = 'Cargando eventos...';
 
-    await loadEventosCache();
+    await Promise.all([loadEventosCache(), loadUsuariosCache()]);
 
     let eventos = eventosCache;
     const filtro = document.getElementById('filter-event-estado');
@@ -495,10 +505,11 @@ async function fetchEventos() {
             <div style="margin-bottom:0.75rem">
                 <span class="badge ${ev.estado}">${ev.estado}</span>
             </div>
-            <div class="card-detail">Fecha: ${ev.fechaInicio || 'N/A'} - ${ev.fechaFin || 'N/A'}</div>
-            <div class="card-detail">Hora: ${ev.horaInicio || 'N/A'} - ${ev.horaFin || 'N/A'}</div>
-            <div class="card-detail">Cupos: ${ev.cuposDisponibles || 0}</div>
-            <div class="card-detail">Organizador: ${getUsuarioNombre(ev.organizadorId)}</div>
+            <div class="card-detail"><strong>Ponente:</strong> ${getPonentesNombres(ev.ponentes_ids)}</div>
+            <div class="card-detail"><strong>Organizador:</strong> ${getUsuarioNombre(ev.organizadorId)}</div>
+            <div class="card-detail"><strong>Fecha:</strong> ${ev.fechaInicio || 'N/A'} - ${ev.fechaFin || 'N/A'}</div>
+            <div class="card-detail"><strong>Hora:</strong> ${ev.horaInicio || 'N/A'} - ${ev.horaFin || 'N/A'}</div>
+            <div class="card-detail"><strong>Cupos:</strong> ${ev.cuposDisponibles || 0}</div>
             <div class="card-actions">
                 ${KosmosAuth.canManageEventos() ? `
                     <button class="btn btn-sm" onclick="openEventModal('${ev.id}')">Editar</button>
@@ -677,10 +688,10 @@ async function fetchUsuarios() {
             <div style="margin-bottom:0.75rem">
                 <span class="badge ${u.rol.toLowerCase()}">${u.rol}</span>
             </div>
-            <div class="card-detail">Cedula: ${u.cedula || 'N/A'}</div>
-            ${u.especialidad ? `<div class="card-detail">Especialidad: ${u.especialidad}</div>` : ''}
-            ${u.institucion ? `<div class="card-detail">Institucion: ${u.institucion}</div>` : ''}
-            ${u.profesion ? `<div class="card-detail">Profesion: ${u.profesion}</div>` : ''}
+            <div class="card-detail"><strong>Cédula:</strong> ${u.cedula || 'N/A'}</div>
+            ${u.especialidad ? `<div class="card-detail"><strong>Especialidad:</strong> ${u.especialidad}</div>` : ''}
+            ${u.institucion ? `<div class="card-detail"><strong>Institución:</strong> ${u.institucion}</div>` : ''}
+            ${u.profesion ? `<div class="card-detail"><strong>Profesión:</strong> ${u.profesion}</div>` : ''}
             <div class="card-actions">
                 ${KosmosAuth.canManageUsers() ? `
                     <button class="btn btn-sm" onclick="openUserModal('${u.id}')">Editar</button>
@@ -809,9 +820,9 @@ async function fetchPONENTES() {
         <div class="card">
             <h3 class="card-title">${p.nombre} ${p.apellido || ''}</h3>
             <div class="card-subtitle">${p.email}</div>
-            <div class="card-detail">Cedula: ${p.cedula || 'N/A'}</div>
-            <div class="card-detail">Especialidad: ${p.especialidad || 'N/A'}</div>
-            <div class="card-detail">Institucion: ${p.institucion || 'N/A'}</div>
+            <div class="card-detail"><strong>Cédula:</strong> ${p.cedula || 'N/A'}</div>
+            <div class="card-detail"><strong>Especialidad:</strong> ${p.especialidad || 'N/A'}</div>
+            <div class="card-detail"><strong>Institución:</strong> ${p.institucion || 'N/A'}</div>
             <div class="card-actions">
                 <button class="btn btn-sm" onclick="openPonenteModal('${p.id}')">Editar</button>
                 <button class="btn btn-sm btn-danger" onclick="eliminarPonente('${p.id}')">Eliminar</button>
@@ -1099,7 +1110,7 @@ async function fetchPonenteEventos() {
     const grid = document.getElementById('ponente-event-grid');
     if (!grid) return;
 
-    await loadEventosCache();
+    await Promise.all([loadEventosCache(), loadUsuariosCache()]);
 
     const misEventos = eventosCache.filter(e => e.ponentes_ids && e.ponentes_ids.includes(user.id));
 
@@ -1113,9 +1124,11 @@ async function fetchPonenteEventos() {
             <h3 class="card-title">${ev.nombre}</h3>
             <div class="card-subtitle">${getTipoNombre(ev.tipoId)}</div>
             <div style="margin-bottom:0.75rem"><span class="badge ${ev.estado}">${ev.estado}</span></div>
-            <div class="card-detail">Fecha: ${ev.fechaInicio || 'N/A'} - ${ev.fechaFin || 'N/A'}</div>
-            <div class="card-detail">Hora: ${ev.horaInicio || 'N/A'} - ${ev.horaFin || 'N/A'}</div>
-            <div class="card-detail">Lugar: ${ev.lugar ? ev.lugar.nombre : 'N/A'}</div>
+            <div class="card-detail"><strong>Ponente:</strong> ${getPonentesNombres(ev.ponentes_ids)}</div>
+            <div class="card-detail"><strong>Organizador:</strong> ${getUsuarioNombre(ev.organizadorId)}</div>
+            <div class="card-detail"><strong>Fecha:</strong> ${ev.fechaInicio || 'N/A'} - ${ev.fechaFin || 'N/A'}</div>
+            <div class="card-detail"><strong>Hora:</strong> ${ev.horaInicio || 'N/A'} - ${ev.horaFin || 'N/A'}</div>
+            <div class="card-detail"><strong>Cupos:</strong> ${ev.cuposDisponibles || 0}</div>
             <div class="card-actions">
                 ${ev.estado === 'finalizado'
                     ? `<button class="btn btn-sm btn-success" onclick="abrirModalCertificado('${ev.id}', '${user.id}')">Generar Certificado</button>`
