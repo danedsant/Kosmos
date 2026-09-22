@@ -1,144 +1,165 @@
-# Kosmos - Sistema de Gestion de Eventos Academicos
+<p align="center">
+  <img src="img/logo.png" width="120" alt="Kosmos Logo" style="filter: drop-shadow(0 0 15px rgba(0, 210, 255, 0.4));">
+</p>
 
-Sistema integral para la gestion de eventos academicos (congresos, seminarios, talleres, conferencias y cursos de extension) desarrollado con MongoDB, PHP Vanilla y JavaScript.
+<h1 align="center">Kosmos — Sistema de Gestión de Eventos Académicos</h1>
 
-## Requisitos
+<p align="center">
+  <em>Plataforma integral para la administración, control y certificación automatizada de eventos académicos con enfoque NoSQL Documental e integración XML.</em>
+</p>
 
-| Componente | Version minima | Notas |
-|------------|---------------|-------|
-| [Laragon](https://laragon.org/download/) | Full o WAMP | Incluye PHP y Apache |
-| PHP | 8.3 | Viene con Laragon |
-| MongoDB Community Server | 6.0+ | Debe correr en `localhost:27017` |
-| Extension `php_mongodb` | 2.5.2 | Ver instrucciones abajo |
+<p align="center">
+  <img src="https://img.shields.io/badge/MongoDB-NoSQL%20BSON-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB">
+  <img src="https://img.shields.io/badge/PHP-8.3%20Vanilla-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP">
+  <img src="https://img.shields.io/badge/JavaScript-Vanilla%20SPA-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript">
+  <img src="https://img.shields.io/badge/jsPDF-Certificados%20Vectoriales-FF3E00?style=for-the-badge&logo=adobeacrobatreader&logoColor=white" alt="jsPDF">
+  <img src="https://img.shields.io/badge/XML-DTD%20%26%20XPath-0060AA?style=for-the-badge&logo=xml&logoColor=white" alt="XML">
 
-## Instalacion
+</p>
 
-### 1. Instalar MongoDB
+---
 
-1. Descargar MongoDB Community Server desde https://www.mongodb.com/try/download/community
-2. Instalar como servicio de Windows en el puerto por defecto (`27017`)
-3. Verificar que este corriendo: abrir `services.msc` y buscar "MongoDB"
+## 📋 Requisitos del Sistema
 
-### 2. Configurar Laragon
+| Componente | Versión / Detalle | Notas |
+| :--- | :--- | :--- |
+| **[Laragon](https://laragon.org/download/)** | Full o WAMP | Incluye Apache y PHP |
+| **PHP** | 8.3 | Nativo con Laragon |
+| **MongoDB Community** | 6.0+ | Corriendo en `localhost:27017` |
+| **Extensión `php_mongodb`** | 2.5.2 | Habilitada en `php.ini` |
 
-1. Instalar Laragon y abrirlo
-2. Copiar la carpeta del proyecto dentro de `C:\laragon\www\` (resultado: `C:\laragon\www\kosmos\`)
-3. Iniciar servicios: boton **Start All**
+---
 
-### 3. Habilitar extension MongoDB en PHP
+## 🚀 Instalación y Puesta en Marcha
 
-1. En Laragon, clic derecho > **PHP** > **dir: ext** (abre la carpeta de extensiones)
-2. Descargar `php_mongodb.dll` desde https://pecl.php.net/package/mongodb (version Thread Safe 'TS' que coincida con PHP 8.3 y arquitectura x64)
-3. Pegar `php_mongodb.dll` en la carpeta de extensiones
-4. En Laragon, clic derecho > **PHP** > **php.ini**
-5. Buscar o agregar al final la seccion de extensiones [mongodb] y agregar:
-   ```
+### 1. Iniciar Servicios
+1. Iniciar MongoDB Community Server en el puerto por defecto (`27017`).
+2. Abrir **Laragon** y presionar **Start All**.
+
+### 2. Habilitar la Extensión MongoDB en PHP
+1. En Laragon: clic derecho > **PHP** > **php.ini**.
+2. Asegurar que la directiva esté activa:
+   ```ini
    extension=mongodb
    ```
-6. Guardar y reiniciar Laragon (boton **Stop** y luego **Start All**)
-7. Verificar: crear un archivo `phpinfo.php` con `<?php phpinfo(); ?>` y buscar "mongodb"
+3. Reiniciar los servicios de Laragon (**Stop** y luego **Start All**).
 
-### 4. Cargar datos iniciales
+### 3. Carga de Datos y Validaciones BSON
+1. Abrir en el navegador para sembrar datos, logo en BSON y plantillas:
+   ```
+   http://localhost/kosmos/api/seed.php
+   ```
+   *(O `http://kosmos.test/api/seed.php` si se usa host virtual de Laragon)*.
 
-1. Abrir en el navegador: `http://kosmos.test/api/seed.php`
-2. Verificar que aparezca "SEED COMPLETADO"
-3. **Eliminar** `seed.php` despues de ejecutarlo (por seguridad para version final)
+2. Aplicar validadores `$jsonSchema` e índices en MongoDB:
+   ```
+   http://localhost/kosmos/api/setup_validacion.php
+   ```
 
-### 5. Acceder al sistema
-
+### 4. Acceder a la Aplicación Web
 Abrir en el navegador:
-
-```
-http://kosmos.test/public/
-```
-
-O alternativamente:
-
 ```
 http://localhost/kosmos/public/
 ```
 
-## Credenciales de Login
+---
 
-| Rol | Email | Password |
-|-----|-------|----------|
-| Admin | admin@kosmos.com | admin123 |
-| Organizador | organizador@kosmos.com | org123 |
-| Ponente | ponente@kosmos.com | pon123 |
-| Participante | participante@kosmos.com | par123 |
+## 🔑 Credenciales de Acceso
 
-## Permisos por Rol
+| Rol | Correo Electrónico | Contraseña | Permisos Principales |
+| :--- | :--- | :--- | :--- |
+| **Admin** | `admin@kosmos.com` | `admin123` | Gestión total de usuarios, eventos, reportes y certificados |
+| **Organizador** | `organizador@kosmos.com` | `org123` | Único que crea eventos, asigna ponentes y emite certificados |
+| **Ponente** | `ponente@kosmos.com` | `pon123` | Consulta de eventos asignados y emisión de diploma al finalizar |
+| **Participante** | `participante@kosmos.com` | `par123` | Auto-registro, inscripción, visualización y descarga de diplomas |
 
-| Funcionalidad | Admin | Organizador | Ponente | Participante |
-|---------------|:-----:|:-----------:|:-------:|:------------:|
-| Ver Eventos | Si | Si | Solo asignados | Si |
-| Crear Eventos | No | Si | No | No |
-| Editar/Eliminar Eventos | Si | Si | No | No |
-| Asignar Ponentes | Si | Si | No | No |
-| Exportar XML | Si | Si | No | No |
-| CRUD Usuarios | Si | Solo Ponentes | No | No |
-| Ver Inscripciones | Si | Si | No | No |
-| Ver Certificados | Si | Si | No | Si (propios) |
-| Reportes | Si | Si | No | No |
-| Editar Perfil | Si | Si | Si | Si |
-| Auto-registro | No | No | No | Si |
+---
 
-## Estructura del Proyecto
+## 🛡️ Matriz de Permisos por Rol
+
+| Funcionalidad | Admin | Organizador | Ponente | Participante | Público |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Ver / Inscribirse en Eventos** | Sí | Sí | Asignados | Sí | No |
+| **Crear Nuevos Eventos** | No | **Sí** | No | No | No |
+| **Editar / Cancelar Eventos** | Sí | Sí | No | No | No |
+| **Asignar Ponentes** | Sí | Sí | No | No | No |
+| **Confirmar Asistencia** | Sí | Sí | No | No | No |
+| **Generar Certificados** | Sí | Sí | Finalizados | No | No |
+| **Ver Diploma / Exportar PDF (jsPDF)** | Sí | Sí | Propios | Propios | Con Código |
+| **Descargar XML Individual** | Sí | Sí | Propios | Propios | Sí |
+| **Validar Autenticidad (QR / Código)** | Sí | Sí | Sí | Sí | **Sí** |
+
+---
+
+## 📡 Catálogo de Endpoints de la API REST
+
+| Endpoint | Métodos | Descripción |
+| :--- | :---: | :--- |
+| `/api/certificados.php` | `GET`, `POST`, `DELETE` | Emisión con generación XML individual, consulta pública por `?codigoCertificado=...` y descarga directa en `?formato=xml&download=1`. |
+| `/api/multimedia.php` | `GET`, `POST` | Gestión de activos BSON (Logo institucional y códigos QR). Soporta retorno en JSON o imagen binaria cruda con `?raw=1`. |
+| `/api/plantillas.php` | `GET`, `POST`, `PUT`, `DELETE` | Catálogo documental de plantillas de certificados configurables en BSON. |
+| `/api/eventos.php` | `GET`, `POST`, `PUT`, `DELETE` | CRUD de eventos con auto-ajuste de estados en tiempo real (`planificado` → `activo` → `finalizado`). |
+| `/api/inscripciones.php` | `GET`, `POST`, `PUT`, `DELETE` | Inscripción con control de cupos y confirmación de asistencia para certificación. |
+| `/api/consultas.php` | `GET` | 10 Aggregation Pipelines oficiales que responden a las preguntas del dominio académico. |
+| `/api/busqueda.php` | `GET` | Búsqueda avanzada con índice textual, filtros por estado/rango de fechas y paginación facetada. |
+| `/api/exportar_xml.php` | `GET` | Exportación completa del árbol de eventos en XML con validación DTD. |
+| `/api/auth.php` | `POST`, `GET` | Autenticación, registro público de participantes y gestión de sesiones. |
+
+---
+
+## 📁 Estructura del Repositorio
 
 ```
 Kosmos/
 +-- api/
 |   +-- config/
-|   |   +-- database.php          (conexion MongoDB)
-|   +-- auth.php                  (login, registro, logout, sesion)
-|   +-- usuarios.php              (CRUD usuarios con 4 roles)
-|   +-- eventos.php               (CRUD eventos con tipoId)
-|   +-- tipos_evento.php          (catalogo de tipos de evento)
-|   +-- inscripciones.php         (CRUD inscripciones)
-|   +-- certificados.php          (CRUD certificados + vinculacion automatizada XML individual, Semana IV)
-|   +-- multimedia.php            (gestion de activos BSON: logo y QR, Semana IV)
-|   +-- plantillas.php            (catalogo BSON de plantillas de certificados, Semana IV)
-|   +-- consultas.php             (10 preguntas aggregation pipeline)
-|   +-- busqueda.php              (busqueda avanzada + paginacion, Semana III)
-|   +-- fragmentacion_demo.php    (simulacion fragmentacion horizontal, Semana III)
-|   +-- setup_validacion.php      (JSON Schema Validation + indices, Semanas III y IV)
+|   |   +-- database.php          (Conexión nativa a MongoDB)
+|   +-- auth.php                  (Login, registro, sesiones)
+|   +-- usuarios.php              (CRUD de usuarios con 4 roles)
+|   +-- eventos.php               (CRUD de eventos con control de estados)
+|   +-- tipos_evento.php          (Catálogo de tipos de evento)
+|   +-- inscripciones.php         (Gestión de inscripciones y asistencia)
+|   +-- certificados.php          (Generación y vinculación automatizada BSON/XML individual)
+|   +-- multimedia.php            (Gestión de activos BSON: Logo y QR)
+|   +-- plantillas.php            (Catálogo BSON de plantillas de certificados)
+|   +-- consultas.php             (10 pipelines de agregación oficiales)
+|   +-- busqueda.php              (Búsqueda avanzada de eventos)
+|   +-- fragmentacion_demo.php    (Simulación de fragmentación horizontal de datos)
+|   +-- setup_validacion.php      (Esquemas $jsonSchema e índices para todas las colecciones)
 |   +-- middleware/
-|   |   +-- ReglasNegocio.php     (middleware centralizado, Semana III)
-|   +-- exportar_xml.php          (generacion XML dinamico de eventos con DTD)
-|   +-- seed.php                  (datos iniciales + logo BSON y plantillas)
+|   |   +-- ReglasNegocio.php     (Validaciones centralizadas y máquina de estados)
+|   +-- exportar_xml.php          (Exportación de evento global con DTD)
+|   +-- seed.php                  (Siembra de usuarios, tipos, logo BSON y plantillas)
 +-- public/
-|   +-- index.html                (SPA principal + visor diploma y verificador publico)
-|   +-- login.html                (login con fondo animado)
-|   +-- register.html             (registro de participantes)
+|   +-- index.html                (SPA principal + visor de diploma y verificador público)
+|   +-- login.html                (Inicio de sesión)
+|   +-- register.html             (Registro de participantes)
 |   +-- css/
-|   |   +-- style.css             (dark mode, glassmorphism, estilos diploma neon)
+|   |   +-- style.css             (Dark mode, glassmorphism y estilos del diploma neón)
 |   +-- js/
-|       +-- app.js                (logica CRUD, visor diploma, jsPDF y validacion)
-|       +-- auth.js               (manejo de sesiones y permisos)
-|       +-- cosmic.js             (animacion de estrellas canvas)
+|       +-- app.js                (Lógica frontend, visor de diploma, jsPDF y validación)
+|       +-- auth.js               (Control de permisos por rol)
+|       +-- cosmic.js             (Fondo canvas animado)
 |       +-- lib/
-|           +-- jspdf.umd.min.js  (generador de diplomas PDF en cliente, Semana IV)
-|           +-- qrcode.min.js     (generador de codigos QR para diplomas, Semana IV)
+|           +-- jspdf.umd.min.js  (Librería client-side para diplomas en PDF)
+|           +-- qrcode.min.js     (Generador de códigos QR para diplomas)
 +-- docs/
-    +-- README.md
-    +-- avance_semana_1_corregido.md
-    +-- avance_semana_2.md
-    +-- semana_3_reglas.md          (Semana III: validacion, pipelines, busqueda, distribucion)
-    +-- avance_semana_3.md
-    +-- avance_semana_4.md          (Semana IV: multimedia BSON, plantillas, XML y jsPDF)
-    +-- pruebas_semana_4.md         (Guía y matriz de pruebas para validar Semana IV)
-    +-- idea plantilla certificado.md (especificacion estetica del diploma jsPDF)
-    +-- semana_1_modelado.md
-    +-- semana_2_arquitectura.md
-    +-- Proyectos_Base_de_Datos_II_CIVA2026.md
+    +-- README.md                 (Documentación general)
+    +-- avance_semana_1_corregido.md (Semana I: Modelado, DTD y XPath)
+    +-- avance_semana_2.md          (Semana II: Persistencia NoSQL e Interfaz Web)
+    +-- avance_semana_3.md          (Semana III: Reglas de Negocio, Agregaciones y Búsqueda)
+    +-- semana_3_reglas.md          (Detalle de validaciones BSON y pipelines)
+    +-- avance_semana_4.md          (Semana IV: Multimedia BSON, XML individual y jsPDF)
+    +-- pruebas_semana_4.md         (Guía y matriz de casos de prueba de Semana IV)
+    +-- idea plantilla certificado.md (Especificación estética de diplomas en PDF)
 ```
 
-## Tecnologias
+---
 
-- **Backend**: PHP Vanilla (sin frameworks)
-- **Base de Datos**: MongoDB (NoSQL/Documental) con BSON para documentos y activos multimedia
-- **Frontend**: HTML5, CSS3, JavaScript vanilla (SPA)
-- **PDF & Multimedia**: jsPDF (generación client-side de diplomas vectoriales) y QRCode.js
-- **Comunicacion**: API REST con respuestas JSON
-- **XML**: Generación dinámica con DTD para eventos y certificados individuales vinculados
-- **UI**: Dark mode (#282828), acentos neón (#00D2FF), glassmorphism, animación canvas
+## 💻 Tecnologías Utilizadas
+
+* **Motor de Base de Datos:** MongoDB Community Server (NoSQL / Documental) utilizando formato BSON para documentos jerárquicos y activos multimedia en Base64.
+* **Backend:** PHP 8.3 Vanilla (sin dependencias de frameworks ni librerías externas de Composer).
+* **Frontend:** Single Page Application (SPA) en HTML5, CSS3 moderno (Dark mode `#282828` con acentos neón `#00D2FF` y glassmorphism) y JavaScript Vanilla.
+* **Motor de Generacion de Certificados:** `jsPDF` en cliente para renderizado vectorial en formato A4 horizontal y `QRCode.js` para validación digital autónoma.
+* **Integración Documental:** XML con especificación DTD y consultas XPath para interoperabilidad documental.
