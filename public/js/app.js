@@ -1648,15 +1648,15 @@ async function mostrarDiplomaModal(cert) {
         qrBase64
     };
 
-    let tituloCertificado = 'D E   P A R T I C I P A C I Ó N';
-    if (cert.tipo === 'ponente') tituloCertificado = 'D E   P O N E N T E';
-    if (cert.tipo === 'organizacion') tituloCertificado = 'D E   O R G A N I Z A C I Ó N';
+    let tituloCertificado = 'DE PARTICIPACIÓN';
+    if (cert.tipo === 'ponente') tituloCertificado = 'DE PONENTE';
+    if (cert.tipo === 'organizacion') tituloCertificado = 'DE ORGANIZACIÓN';
 
     // 3. Renderizar vista HTML idéntica a docs/idea plantilla certificado.md
     area.innerHTML = `
         <div class="diploma-card">
             ${logoBase64 ? `<img src="${logoBase64}" class="diploma-header-logo" alt="Kosmos Logo">` : ''}
-            <div class="diploma-inst-title">K O S M O S   E V E N T O S   A C A D É M I C O S</div>
+            <div class="diploma-inst-title">KOSMOS EVENTOS ACADÉMICOS</div>
             <h1 class="diploma-main-title">CERTIFICADO</h1>
             <div class="diploma-sub-title">${tituloCertificado}</div>
             
@@ -1745,10 +1745,14 @@ window.descargarDiplomaPDF = function() {
     // --- 4. ENCABEZADOS ---
     let currentY = 22 + targetHeight + 10;
     
+    // Función de espaciado para tracking y separación nítida de palabras en canvas PDF
+    const espaciarTextoPDF = (texto, espLetras = 1, espPalabras = 6) => 
+        texto.split(' ').map(palabra => palabra.split('').join(' '.repeat(espLetras))).join(' '.repeat(espPalabras));
+
     doc.setTextColor(180, 180, 180);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
-    doc.text("K O S M O S   E V E N T O S   A C A D É M I C O S", centroX, currentY, { align: "center" });
+    doc.text(espaciarTextoPDF("KOSMOS EVENTOS ACADÉMICOS", 1, 6), centroX, currentY, { align: "center" });
 
     currentY += 12; 
     doc.setTextColor(255, 255, 255);
@@ -1758,10 +1762,10 @@ window.descargarDiplomaPDF = function() {
     currentY += 7;
     doc.setTextColor(0, 210, 255);
     doc.setFontSize(15);
-    let sub = "D E   P A R T I C I P A C I Ó N";
-    if (tipoCert === 'ponente') sub = "D E   P O N E N T E";
-    if (tipoCert === 'organizacion') sub = "D E   O R G A N I Z A C I Ó N";
-    doc.text(sub, centroX, currentY, { align: "center" });
+    let sub = "DE PARTICIPACIÓN";
+    if (tipoCert === 'ponente') sub = "DE PONENTE";
+    if (tipoCert === 'organizacion') sub = "DE ORGANIZACIÓN";
+    doc.text(espaciarTextoPDF(sub, 1, 6), centroX, currentY, { align: "center" });
 
     // --- 5. CUERPO Y NOMBRE ---
     currentY += 14; 

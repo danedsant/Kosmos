@@ -64,7 +64,7 @@ switch($method) {
                     "_id" => new MongoDB\BSON\ObjectId(),
                     "nombre" => $data->nombre,
                     "tipoCertificado" => $data->tipoCertificado, // participacion, ponente, organizacion
-                    "encabezado" => $data->encabezado ?? "K O S M O S   E V E N T O S   A C A D É M I C O S",
+                    "encabezado" => $data->encabezado ?? "KOSMOS EVENTOS ACADÉMICOS",
                     "titulo" => $data->titulo,
                     "subtitulo" => $data->subtitulo ?? "Se otorga el presente reconocimiento a:",
                     "cuerpoTexto" => $data->cuerpoTexto ?? "Por haber asistido y aprobado satisfactoriamente el {{tipo}} titulado:",

@@ -43,7 +43,7 @@ $usuarios = [
         "apellido" => "Kosmos",
         "email" => "admin@kosmos.com",
         "password" => "admin123",
-        "cedula" => "V-00.000.001",
+        "cedula" => "V-00.000.000",
         "rol" => "Admin"
     ],
     [
@@ -117,7 +117,6 @@ if (file_exists($logoPath)) {
     
     $bulkLogo = new MongoDB\Driver\BulkWrite;
     $logoDoc = [
-        "_id" => new MongoDB\BSON\ObjectId(),
         "tipo" => "logo",
         "nombre" => "logo_kosmos_oficial",
         "mimeType" => "image/png",
@@ -143,8 +142,8 @@ $plantillas = [
     [
         "nombre" => "Plantilla Estandar de Participacion",
         "tipoCertificado" => "participacion",
-        "encabezado" => "K O S M O S   E V E N T O S   A C A D É M I C O S",
-        "titulo" => "D E   P A R T I C I P A C I Ó N",
+        "encabezado" => "KOSMOS EVENTOS ACADÉMICOS",
+        "titulo" => "DE PARTICIPACIÓN",
         "subtitulo" => "Se otorga el presente reconocimiento a:",
         "cuerpoTexto" => "Por haber asistido y aprobado satisfactoriamente el {{tipo}} titulado:",
         "activo" => true
@@ -152,8 +151,8 @@ $plantillas = [
     [
         "nombre" => "Plantilla Distinguida para Ponentes",
         "tipoCertificado" => "ponente",
-        "encabezado" => "K O S M O S   E V E N T O S   A C A D É M I C O S",
-        "titulo" => "D E   P O N E N T E",
+        "encabezado" => "KOSMOS EVENTOS ACADÉMICOS",
+        "titulo" => "DE PONENTE",
         "subtitulo" => "Se otorga el presente reconocimiento como Ponente a:",
         "cuerpoTexto" => "Por su valiosa disertacion y contribucion academica en el {{tipo}} titulado:",
         "activo" => true
@@ -161,8 +160,8 @@ $plantillas = [
     [
         "nombre" => "Plantilla de Comite Organizador",
         "tipoCertificado" => "organizacion",
-        "encabezado" => "K O S M O S   E V E N T O S   A C A D É M I C O S",
-        "titulo" => "D E   O R G A N I Z A C I Ó N",
+        "encabezado" => "KOSMOS EVENTOS ACADÉMICOS",
+        "titulo" => "DE ORGANIZACIÓN",
         "subtitulo" => "Se otorga el presente reconocimiento por coordinacion a:",
         "cuerpoTexto" => "Por su destacada labor en la organizacion y ejecucion del {{tipo}} titulado:",
         "activo" => true
@@ -172,7 +171,6 @@ $plantillas = [
 foreach ($plantillas as $p) {
     $bulkP = new MongoDB\Driver\BulkWrite;
     $pDoc = array_merge($p, [
-        "_id" => new MongoDB\BSON\ObjectId(),
         "fecha_creacion" => new MongoDB\BSON\UTCDateTime()
     ]);
     $bulkP->update(['tipoCertificado' => $p['tipoCertificado']], ['$set' => $pDoc], ['upsert' => true]);

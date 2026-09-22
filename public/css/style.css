@@ -845,9 +845,10 @@ tbody tr:hover {
 
 .diploma-inst-title {
   color: #b4b4b4;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  letter-spacing: 3px;
+  letter-spacing: 4px;
+  word-spacing: 14px;
   text-transform: uppercase;
   margin-bottom: 0.75rem;
 }
@@ -863,9 +864,10 @@ tbody tr:hover {
 
 .diploma-sub-title {
   color: #00d2ff;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 700;
-  letter-spacing: 4px;
+  letter-spacing: 5px;
+  word-spacing: 18px;
   margin-top: 0.35rem;
   margin-bottom: 1.2rem;
   text-transform: uppercase;
