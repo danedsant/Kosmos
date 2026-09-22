@@ -963,12 +963,13 @@ async function fetchCertificados() {
         <tr>
             <td>${cert.codigoCertificado}</td>
             <td>${getEventoNombre(cert.eventoId)}</td>
-            <td>${getUsuarioNombre(cert.participanteId)}</td>
+            <td>${getUsuarioNombre(cert.participanteId || cert.ponenteId)}</td>
             <td>${cert.tipo}</td>
             <td>${cert.horasDuracion || 0}</td>
             <td>${formatDate(cert.fechaEmision)}</td>
             <td>
-                <button class="btn btn-sm" onclick="exportarXML('${cert.eventoId}')">XML</button>
+                <button class="btn btn-sm btn-success" onclick="abrirVisualizadorDiploma('${cert.id}')">Ver Diploma</button>
+                <button class="btn btn-sm" onclick="descargarXMLCertificado('${cert.id}')">XML</button>
             </td>
         </tr>
     `).join('');
@@ -1085,7 +1086,8 @@ async function fetchMisCertificados() {
             <td>${cert.horasDuracion || 0}</td>
             <td>${cert.fechaEmision ? formatDate(cert.fechaEmision) : 'N/A'}</td>
             <td>
-                <button class="btn btn-sm" onclick="exportarXML('${cert.eventoId}')">Descargar XML</button>
+                <button class="btn btn-sm btn-success" onclick="abrirVisualizadorDiploma('${cert.id}')">Ver Diploma</button>
+                <button class="btn btn-sm" onclick="descargarXMLCertificado('${cert.id}')">Descargar XML</button>
             </td>
         </tr>
     `).join('');
@@ -1150,7 +1152,8 @@ async function fetchPonenteCertificados() {
             <td>${cert.horasDuracion || 0}</td>
             <td>${cert.fechaEmision ? formatDate(cert.fechaEmision) : 'N/A'}</td>
             <td>
-                <button class="btn btn-sm" onclick="exportarXML('${cert.eventoId}')">Descargar XML</button>
+                <button class="btn btn-sm btn-success" onclick="abrirVisualizadorDiploma('${cert.id}')">Ver Diploma</button>
+                <button class="btn btn-sm" onclick="descargarXMLCertificado('${cert.id}')">Descargar XML</button>
             </td>
         </tr>
     `).join('');
@@ -1492,10 +1495,444 @@ async function loadEventosFilter(selectId) {
     sel.value = current;
 }
 
+// ================= SEMANA IV: VISOR Y GENERADOR DE DIPLOMA (jsPDF + BSON + XML) ================= //
+
+let cachedLogoBase64 = null;
+let currentDiplomaData = null;
+
+async function getLogoBase64() {
+    if (cachedLogoBase64) return cachedLogoBase64;
+    try {
+        const res = await apiGet('multimedia.php?tipo=logo');
+        if (res.status === 'success' && res.data && res.data.datos) {
+            cachedLogoBase64 = res.data.datos;
+            return cachedLogoBase64;
+        }
+    } catch(e) {}
+    
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            cachedLogoBase64 = canvas.toDataURL('image/png');
+            resolve(cachedLogoBase64);
+        };
+        img.onerror = function() {
+            resolve('');
+        };
+        img.src = '../img/logo.png';
+    });
+}
+
+function generarQRDataURL(text) {
+    return new Promise((resolve) => {
+        const tempDiv = document.createElement('div');
+        tempDiv.style.position = 'fixed';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '-9999px';
+        document.body.appendChild(tempDiv);
+        try {
+            new QRCode(tempDiv, {
+                text: text,
+                width: 256,
+                height: 256,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            setTimeout(() => {
+                const canvas = tempDiv.querySelector('canvas');
+                if (canvas) {
+                    const dataUrl = canvas.toDataURL('image/png');
+                    document.body.removeChild(tempDiv);
+                    resolve(dataUrl);
+                } else {
+                    const img = tempDiv.querySelector('img');
+                    const dataUrl = img ? img.src : '';
+                    document.body.removeChild(tempDiv);
+                    resolve(dataUrl);
+                }
+            }, 60);
+        } catch(e) {
+            if (tempDiv.parentNode) document.body.removeChild(tempDiv);
+            resolve('');
+        }
+    });
+}
+
+window.descargarXMLCertificado = function(certId) {
+    window.open(`${API_URL}/certificados.php?id=${certId}&formato=xml&download=1`, '_blank');
+};
+
+window.abrirVisualizadorDiploma = async function(certId) {
+    const res = await apiGet(`certificados.php?id=${certId}`);
+    if (res.status !== 'success' || !res.data) {
+        alert('No se pudo cargar la información del certificado.');
+        return;
+    }
+    const cert = res.data;
+    await mostrarDiplomaModal(cert);
+};
+
+async function mostrarDiplomaModal(cert) {
+    const area = document.getElementById('diploma-render-area');
+    if (!area) return;
+    area.innerHTML = '<div style="padding: 2.5rem; color: #00d2ff; text-align: center;">Cargando activos multimedia y procesando XML del diploma...</div>';
+    openModal('diploma-modal');
+
+    // 1. Extraer datos del XML individual vinculado (Semana IV)
+    let nombre = '', apellido = '', cedula = '', nombreEvento = '', tipo = 'Evento', codigo = '', emision = '', horas = 0, qrUrl = '';
+    
+    if (cert.contenidoXml) {
+        try {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(cert.contenidoXml, 'text/xml');
+            nombre = xmlDoc.querySelector('participante nombre')?.textContent?.trim() || '';
+            apellido = xmlDoc.querySelector('participante apellido')?.textContent?.trim() || '';
+            cedula = xmlDoc.querySelector('participante cedula')?.textContent?.trim() || '';
+            nombreEvento = xmlDoc.querySelector('evento > nombre')?.textContent?.trim() || '';
+            tipo = xmlDoc.querySelector('tipo')?.textContent?.trim() || 'Evento';
+            codigo = xmlDoc.querySelector('codigoCertificado')?.textContent?.trim() || cert.codigoCertificado;
+            emision = xmlDoc.querySelector('fechaEmision')?.textContent?.trim() || '';
+            horas = xmlDoc.querySelector('horasDuracion')?.textContent?.trim() || cert.horasDuracion || 0;
+            qrUrl = xmlDoc.querySelector('qrUrl')?.textContent?.trim() || cert.qrUrl || '';
+        } catch(e) {
+            console.warn('Error procesando XML:', e);
+        }
+    }
+
+    // Fallback a datos embebidos de BSON si no vinieron del XML
+    if (!nombre && cert.datosEmbebidos?.participante) {
+        const p = cert.datosEmbebidos.participante;
+        nombre = p.nombre || '';
+        apellido = p.apellido || '';
+        cedula = p.cedula || '';
+    }
+    if (!nombreEvento && cert.datosEmbebidos?.evento) {
+        const ev = cert.datosEmbebidos.evento;
+        nombreEvento = ev.nombre || '';
+        tipo = ev.tipo || tipo;
+        horas = ev.horasDuracion || horas;
+    }
+    if (!codigo) codigo = cert.codigoCertificado;
+    if (!emision) emision = cert.fechaEmision ? cert.fechaEmision.split('T')[0] : new Date().toISOString().split('T')[0];
+    if (!qrUrl) {
+        const protocol = window.location.protocol;
+        const host = window.location.host;
+        qrUrl = `${protocol}//${host}/public/index.html?verificar=${codigo}`;
+    }
+
+    // 2. Obtener Logo y QR en Base64
+    const logoBase64 = await getLogoBase64();
+    const qrBase64 = await generarQRDataURL(qrUrl);
+
+    // Guardar en estado global para exportación jsPDF
+    currentDiplomaData = {
+        certId: cert.id || cert._id,
+        nombre: nombre || 'Participante',
+        apellido: apellido || 'Kosmos',
+        cedula: cedula || 'V-00.000.000',
+        nombreEvento: nombreEvento || 'Evento Académico',
+        tipo: tipo || 'Evento',
+        codigo,
+        emision,
+        horas,
+        qrUrl,
+        tipoCert: cert.tipo || 'participacion',
+        logoBase64,
+        qrBase64
+    };
+
+    let tituloCertificado = 'D E   P A R T I C I P A C I Ó N';
+    if (cert.tipo === 'ponente') tituloCertificado = 'D E   P O N E N T E';
+    if (cert.tipo === 'organizacion') tituloCertificado = 'D E   O R G A N I Z A C I Ó N';
+
+    // 3. Renderizar vista HTML idéntica a docs/idea plantilla certificado.md
+    area.innerHTML = `
+        <div class="diploma-card">
+            ${logoBase64 ? `<img src="${logoBase64}" class="diploma-header-logo" alt="Kosmos Logo">` : ''}
+            <div class="diploma-inst-title">K O S M O S   E V E N T O S   A C A D É M I C O S</div>
+            <h1 class="diploma-main-title">CERTIFICADO</h1>
+            <div class="diploma-sub-title">${tituloCertificado}</div>
+            
+            <div class="diploma-lead">Se otorga el presente reconocimiento a:</div>
+            
+            <div class="diploma-name-plate">
+                <div class="diploma-person-name">${currentDiplomaData.nombre} ${currentDiplomaData.apellido}</div>
+                <div class="diploma-person-ci">C.I: ${currentDiplomaData.cedula}</div>
+            </div>
+
+            <div class="diploma-text-body">
+                Por haber asistido y aprobado satisfactoriamente el <strong>${currentDiplomaData.tipo}</strong> titulado:
+                <div class="diploma-event-name">"${currentDiplomaData.nombreEvento}"</div>
+                <div class="diploma-hours">completando una carga horaria de <strong>${currentDiplomaData.horas}</strong> horas académicas.</div>
+            </div>
+
+            <div class="diploma-footer-grid">
+                <div class="diploma-footer-col">
+                    <div class="diploma-footer-line"></div>
+                    <div class="diploma-footer-label">EMISIÓN: ${currentDiplomaData.emision}</div>
+                </div>
+                <div class="diploma-footer-col">
+                    <div class="diploma-qr-box">
+                        <img src="${qrBase64}" alt="QR Verificación">
+                    </div>
+                    <div class="diploma-qr-caption">VALIDACIÓN DIGITAL</div>
+                </div>
+                <div class="diploma-footer-col">
+                    <div class="diploma-footer-line"></div>
+                    <div class="diploma-footer-label">CÓDIGO: ${currentDiplomaData.codigo}</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+window.descargarDiplomaXML = function() {
+    if (currentDiplomaData?.certId) {
+        descargarXMLCertificado(currentDiplomaData.certId);
+    }
+};
+
+window.descargarDiplomaPDF = function() {
+    if (!currentDiplomaData) return;
+    const { nombre, apellido, cedula, nombreEvento, tipo, codigo, emision, horas, tipoCert, logoBase64, qrBase64 } = currentDiplomaData;
+
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('La librería jsPDF se está inicializando, por favor intente nuevamente en unos segundos.');
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4');
+    const centroX = 297 / 2;
+
+    // --- 1. FONDO OSCURO UI (#282828) ---
+    doc.setFillColor(40, 40, 40); 
+    doc.rect(0, 0, 297, 210, 'F');
+
+    // --- 2. EFECTO NEÓN BLANCO/CIAN ---
+    doc.setDrawColor(255, 255, 255);
+    doc.setLineWidth(0.5);
+    doc.rect(12, 12, 273, 186, 'S');
+
+    doc.setDrawColor(0, 210, 255); 
+    doc.setLineWidth(1.2);
+    doc.rect(15, 15, 267, 180, 'S');
+
+    doc.setFillColor(255, 255, 255);
+    doc.rect(15, 15, 20, 2, 'F'); doc.rect(15, 15, 2, 20, 'F');
+    doc.rect(262, 15, 20, 2, 'F'); doc.rect(280, 15, 2, 20, 'F');
+    doc.rect(15, 193, 20, 2, 'F'); doc.rect(15, 175, 2, 20, 'F');
+    doc.rect(262, 193, 20, 2, 'F'); doc.rect(280, 175, 2, 20, 'F');
+
+    // --- 3. LOGO ---
+    const targetWidth = 35;
+    const targetHeight = 35;
+    if (logoBase64) {
+        try {
+            doc.addImage(logoBase64, 'PNG', centroX - (targetWidth / 2), 22, targetWidth, targetHeight);
+        } catch(e) {
+            console.warn('No se pudo añadir logo a PDF:', e);
+        }
+    }
+
+    // --- 4. ENCABEZADOS ---
+    let currentY = 22 + targetHeight + 10;
+    
+    doc.setTextColor(180, 180, 180);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("K O S M O S   E V E N T O S   A C A D É M I C O S", centroX, currentY, { align: "center" });
+
+    currentY += 12; 
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(38);
+    doc.text("CERTIFICADO", centroX, currentY, { align: "center" });
+
+    currentY += 7;
+    doc.setTextColor(0, 210, 255);
+    doc.setFontSize(15);
+    let sub = "D E   P A R T I C I P A C I Ó N";
+    if (tipoCert === 'ponente') sub = "D E   P O N E N T E";
+    if (tipoCert === 'organizacion') sub = "D E   O R G A N I Z A C I Ó N";
+    doc.text(sub, centroX, currentY, { align: "center" });
+
+    // --- 5. CUERPO Y NOMBRE ---
+    currentY += 14; 
+    doc.setTextColor(200, 200, 200);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text("Se otorga el presente reconocimiento a:", centroX, currentY, { align: "center" });
+
+    currentY += 5;
+    doc.setFillColor(30, 30, 30); 
+    doc.rect(centroX - 85, currentY, 170, 22, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("times", "italic");
+    doc.setFontSize(44);
+    doc.text(`${nombre} ${apellido}`, centroX, currentY + 16, { align: "center" });
+
+    currentY += 30; 
+    doc.setTextColor(0, 210, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(`C.I: ${cedula}`, centroX, currentY, { align: "center" });
+
+    // --- 6. TEXTO DESCRIPTIVO ---
+    currentY += 12; 
+    doc.setTextColor(200, 200, 200);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(13);
+    doc.text(`Por haber asistido y aprobado satisfactoriamente el ${tipo} titulado:`, centroX, currentY, { align: "center" });
+
+    currentY += 8; 
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text(`"${nombreEvento}"`, centroX, currentY, { align: "center" });
+
+    currentY += 7; 
+    doc.setTextColor(200, 200, 200);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(13);
+    doc.text(`completando una carga horaria de ${horas} horas académicas.`, centroX, currentY, { align: "center" });
+
+    // --- 7. PIE DE PÁGINA (Ajustado simétrico en 3 columnas) ---
+    const bottomY = 183; 
+    doc.setDrawColor(0, 210, 255);
+    doc.setLineWidth(0.8);
+    
+    // Columna Izquierda (Emisión)
+    doc.line(35, bottomY, 85, bottomY);
+    doc.setTextColor(180, 180, 180);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text(`EMISIÓN: ${emision}`, 60, bottomY + 5, { align: "center" });
+
+    // Columna Central (QR Code alineado)
+    if (qrBase64) {
+        try {
+            doc.setFillColor(255, 255, 255);
+            doc.rect(centroX - 11, bottomY - 19, 22, 22, 'F');
+            doc.setDrawColor(0, 210, 255);
+            doc.setLineWidth(0.4);
+            doc.rect(centroX - 11, bottomY - 19, 22, 22, 'S');
+            doc.addImage(qrBase64, 'PNG', centroX - 10, bottomY - 18, 20, 20);
+            doc.setTextColor(0, 210, 255);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(7);
+            doc.text("VALIDACIÓN DIGITAL", centroX, bottomY + 6, { align: "center" });
+        } catch(eqr) {
+            console.warn('Error incrustando QR:', eqr);
+        }
+    }
+
+    // Columna Derecha (Código)
+    doc.setDrawColor(0, 210, 255);
+    doc.setLineWidth(0.8);
+    doc.line(212, bottomY, 262, bottomY);
+    doc.setTextColor(180, 180, 180);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text(`CÓDIGO: ${codigo}`, 237, bottomY + 5, { align: "center" });
+
+    doc.save(`Certificado_Kosmos_${nombre}_${apellido}.pdf`);
+};
+
+// ================= VERIFICADOR PÚBLICO DE CERTIFICADOS ================= //
+
+window.abrirModalVerificar = function(codigoInicial = '') {
+    const input = document.getElementById('verificar-codigo-input');
+    const resDiv = document.getElementById('verificar-resultado');
+    if (input) input.value = codigoInicial;
+    if (resDiv) resDiv.innerHTML = '';
+    openModal('verificar-modal');
+    if (codigoInicial) {
+        consultarValidacionCertificado();
+    }
+};
+
+window.consultarValidacionCertificado = async function() {
+    const input = document.getElementById('verificar-codigo-input');
+    const resDiv = document.getElementById('verificar-resultado');
+    if (!input || !resDiv) return;
+    const codigo = input.value.trim().toUpperCase();
+    if (!codigo) {
+        resDiv.innerHTML = '<div class="val-card-error">Por favor ingrese un código de certificado.</div>';
+        return;
+    }
+
+    resDiv.innerHTML = '<div style="color: #00d2ff; padding: 10px;">Consultando registros en MongoDB y validando XML...</div>';
+    try {
+        const res = await apiGet(`certificados.php?codigoCertificado=${encodeURIComponent(codigo)}`);
+        if (res.status === 'success' && res.data) {
+            const c = res.data;
+            let personaNom = 'N/A';
+            let eventoNom = 'N/A';
+            if (c.datosEmbebidos?.participante) {
+                personaNom = `${c.datosEmbebidos.participante.nombre} ${c.datosEmbebidos.participante.apellido} (${c.datosEmbebidos.participante.cedula})`;
+            } else {
+                personaNom = getUsuarioNombre(c.participanteId || c.ponenteId);
+            }
+            if (c.datosEmbebidos?.evento) {
+                eventoNom = c.datosEmbebidos.evento.nombre;
+            } else {
+                eventoNom = getEventoNombre(c.eventoId);
+            }
+
+            resDiv.innerHTML = `
+                <div class="val-card-success">
+                    <div style="font-weight: 700; color: #22c55e; margin-bottom: 0.5rem;">
+                        ✔ CERTIFICADO AUTÉNTICO Y VÁLIDO
+                    </div>
+                    <div style="font-size: 0.85rem; line-height: 1.6; color: #e2e8f0;">
+                        <div><strong>Código:</strong> ${c.codigoCertificado}</div>
+                        <div><strong>Titular:</strong> ${personaNom}</div>
+                        <div><strong>Evento:</strong> ${eventoNom}</div>
+                        <div><strong>Tipo:</strong> ${c.tipo.toUpperCase()}</div>
+                        <div><strong>Horas Académicas:</strong> ${c.horasDuracion || 0} horas</div>
+                        <div><strong>Fecha de Emisión:</strong> ${c.fechaEmision ? c.fechaEmision.split('T')[0] : 'N/A'}</div>
+                        <div><strong>XML Vinculado:</strong> ${c.contenidoXml ? '✔ Integrado y verificado en BSON' : 'No disponible'}</div>
+                    </div>
+                    <div style="margin-top: 1rem; display: flex; gap: 8px;">
+                        <button class="btn btn-sm btn-success" onclick="closeModal('verificar-modal'); abrirVisualizadorDiploma('${c.id}')">Ver Diploma</button>
+                        <button class="btn btn-sm btn-outline" onclick="descargarXMLCertificado('${c.id}')">Descargar XML</button>
+                    </div>
+                </div>
+            `;
+        } else {
+            resDiv.innerHTML = `
+                <div class="val-card-error">
+                    <strong>✖ Certificado no encontrado</strong>
+                    <div style="font-size: 0.85rem; margin-top: 4px;">
+                        El código <code>${codigo}</code> no coincide con ningún certificado emitido en la base de datos de Kosmos.
+                    </div>
+                </div>
+            `;
+        }
+    } catch(err) {
+        resDiv.innerHTML = `<div class="val-card-error">Error al consultar el servicio de verificación: ${err.message}</div>`;
+    }
+};
+
 // ================= INIT ================= //
 async function initApp() {
     await Promise.all([loadUsuariosCache(), loadEventosCache(), fetchTipos()]);
     buildNav();
+
+    // Auto-detección de verificación por URL (Semana IV)
+    const urlParams = new URLSearchParams(window.location.search);
+    const verifCode = urlParams.get('verificar');
+    if (verifCode) {
+        abrirModalVerificar(verifCode);
+    }
 }
 
 initApp();

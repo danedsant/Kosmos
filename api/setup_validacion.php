@@ -144,11 +144,41 @@ $valCertificados = ['$jsonSchema' => [
     ]
 ]];
 
+// Validadores Semana IV: Datos Multimedia y Plantillas Dinámicas en BSON
+$valMultimedia = ['$jsonSchema' => [
+    'bsonType' => 'object',
+    'required' => ['tipo', 'nombre', 'mimeType', 'datos'],
+    'properties' => [
+        'tipo' => ['enum' => ['logo', 'qr']],
+        'nombre' => ['bsonType' => 'string'],
+        'mimeType' => ['bsonType' => 'string'],
+        'datos' => ['bsonType' => 'string', 'description' => 'Base64 del archivo multimedia'],
+        'referenciaId' => ['bsonType' => ['string', 'null']],
+        'metadatos' => ['bsonType' => 'object']
+    ]
+]];
+
+$valPlantillas = ['$jsonSchema' => [
+    'bsonType' => 'object',
+    'required' => ['nombre', 'tipoCertificado', 'titulo'],
+    'properties' => [
+        'nombre' => ['bsonType' => 'string', 'minLength' => 3],
+        'tipoCertificado' => ['enum' => ['participacion', 'ponente', 'organizacion']],
+        'encabezado' => ['bsonType' => 'string'],
+        'titulo' => ['bsonType' => 'string'],
+        'subtitulo' => ['bsonType' => 'string'],
+        'cuerpoTexto' => ['bsonType' => 'string'],
+        'activo' => ['bsonType' => 'bool']
+    ]
+]];
+
 aplicarValidador($db, $db_name, 'usuarios', $valUsuarios, $log);
 aplicarValidador($db, $db_name, 'tipos_evento', $valTipos, $log);
 aplicarValidador($db, $db_name, 'eventos', $valEventos, $log);
 aplicarValidador($db, $db_name, 'inscripciones', $valInscripciones, $log);
 aplicarValidador($db, $db_name, 'certificados', $valCertificados, $log);
+aplicarValidador($db, $db_name, 'multimedia', $valMultimedia, $log);
+aplicarValidador($db, $db_name, 'plantillas_certificados', $valPlantillas, $log);
 
 // ---------- 2. INDICES (busqueda avanzada + integridad) ----------
 crearIndice($db, $db_name, 'usuarios', ['email' => 1], ['unique' => true, 'name' => 'uniq_email'], $log);
@@ -172,4 +202,9 @@ crearIndice($db, $db_name, 'certificados', ['codigoCertificado' => 1], ['unique'
 crearIndice($db, $db_name, 'certificados', ['eventoId' => 1], ['name' => 'idx_cert_evento'], $log);
 crearIndice($db, $db_name, 'certificados', ['participanteId' => 1], ['name' => 'idx_cert_participante'], $log);
 
-echo json_encode(["status" => "success", "message" => "Validacion BSON + indices aplicados (Semana III).", "log" => $log], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+// Índices Semana IV
+crearIndice($db, $db_name, 'multimedia', ['tipo' => 1], ['name' => 'idx_multimedia_tipo'], $log);
+crearIndice($db, $db_name, 'multimedia', ['referenciaId' => 1], ['name' => 'idx_multimedia_referenciaId'], $log);
+crearIndice($db, $db_name, 'plantillas_certificados', ['tipoCertificado' => 1], ['name' => 'idx_plantilla_tipoCertificado'], $log);
+
+echo json_encode(["status" => "success", "message" => "Validacion BSON + indices aplicados (Semana III y IV).", "log" => $log], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);

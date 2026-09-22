@@ -18,17 +18,20 @@ $tipos = [
 ];
 
 foreach ($tipos as $tipo) {
-    $bulk = new MongoDB\Driver\BulkWrite;
-    $doc = [
-        "_id" => new MongoDB\BSON\ObjectId(),
-        "nombre" => $tipo["nombre"],
-        "descripcion" => $tipo["descripcion"],
-        "activo" => true,
-        "fecha_creacion" => new MongoDB\BSON\UTCDateTime()
-    ];
-    $bulk->insert($doc);
-    $db->executeBulkWrite("$db_name.tipos_evento", $bulk);
-    echo "   - Tipo: {$tipo['nombre']} (OK)\n";
+    try {
+        $bulk = new MongoDB\Driver\BulkWrite;
+        $doc = [
+            "nombre" => $tipo["nombre"],
+            "descripcion" => $tipo["descripcion"],
+            "activo" => true,
+            "fecha_creacion" => new MongoDB\BSON\UTCDateTime()
+        ];
+        $bulk->update(['nombre' => $tipo['nombre']], ['$setOnInsert' => ['_id' => new MongoDB\BSON\ObjectId()], '$set' => $doc], ['upsert' => true]);
+        $db->executeBulkWrite("$db_name.tipos_evento", $bulk);
+        echo "   - Tipo: {$tipo['nombre']} (OK)\n";
+    } catch(Exception $e) {
+        echo "   - Tipo: {$tipo['nombre']} (ya existía)\n";
+    }
 }
 
 // 2. Insertar usuarios (uno de cada rol)
@@ -74,39 +77,114 @@ $usuarios = [
 ];
 
 foreach ($usuarios as $u) {
-    $bulk = new MongoDB\Driver\BulkWrite;
-    $doc = [
-        "_id" => new MongoDB\BSON\ObjectId(),
-        "nombre" => $u["nombre"],
-        "apellido" => $u["apellido"],
-        "email" => $u["email"],
-        "password" => password_hash($u["password"], PASSWORD_DEFAULT),
-        "cedula" => $u["cedula"],
-        "rol" => $u["rol"],
-        "estado" => "activo",
-        "fecha_creacion" => new MongoDB\BSON\UTCDateTime()
-    ];
+    try {
+        $bulk = new MongoDB\Driver\BulkWrite;
+        $doc = [
+            "nombre" => $u["nombre"],
+            "apellido" => $u["apellido"],
+            "email" => $u["email"],
+            "password" => password_hash($u["password"], PASSWORD_DEFAULT),
+            "cedula" => $u["cedula"],
+            "rol" => $u["rol"],
+            "estado" => "activo",
+            "fecha_creacion" => new MongoDB\BSON\UTCDateTime()
+        ];
 
-    if ($u["rol"] === "Ponente") {
-        $doc["especialidad"] = $u["especialidad"];
-        $doc["institucion"] = $u["institucion"];
+        if ($u["rol"] === "Ponente") {
+            $doc["especialidad"] = $u["especialidad"];
+            $doc["institucion"] = $u["institucion"];
+        }
+
+        if ($u["rol"] === "Participante") {
+            $doc["profesion"] = $u["profesion"];
+            $doc["institucion"] = $u["institucion"];
+        }
+
+        $bulk->update(['email' => $u['email']], ['$setOnInsert' => ['_id' => new MongoDB\BSON\ObjectId()], '$set' => $doc], ['upsert' => true]);
+        $db->executeBulkWrite("$db_name.usuarios", $bulk);
+        echo "   - [{$u['rol']}] {$u['nombre']} {$u['apellido']} ({$u['email']}) (OK)\n";
+    } catch(Exception $e) {
+        echo "   - [{$u['rol']}] {$u['nombre']} {$u['apellido']} (ya existía)\n";
     }
-
-    if ($u["rol"] === "Participante") {
-        $doc["profesion"] = $u["profesion"];
-        $doc["institucion"] = $u["institucion"];
-    }
-
-    $bulk->insert($doc);
-    $db->executeBulkWrite("$db_name.usuarios", $bulk);
-    echo "   - [{$u['rol']}] {$u['nombre']} {$u['apellido']} ({$u['email']}) (OK)\n";
 }
 
-echo "\n=== SEED COMPLETADO ===\n";
+// 3. Insertar activo multimedia (Logo Kosmos en BSON)
+echo "\n3. Insertando activo multimedia inicial (Logo institucional)...\n";
+$logoPath = __DIR__ . '/../img/logo.png';
+if (file_exists($logoPath)) {
+    $logoBytes = file_get_contents($logoPath);
+    $logoBase64 = 'data:image/png;base64,' . base64_encode($logoBytes);
+    
+    $bulkLogo = new MongoDB\Driver\BulkWrite;
+    $logoDoc = [
+        "_id" => new MongoDB\BSON\ObjectId(),
+        "tipo" => "logo",
+        "nombre" => "logo_kosmos_oficial",
+        "mimeType" => "image/png",
+        "datos" => $logoBase64,
+        "referenciaId" => "global",
+        "metadatos" => [
+            "anchoOriginal" => 512,
+            "altoOriginal" => 512,
+            "descripcion" => "Logo oficial del sistema Kosmos para certificados y encabezados"
+        ],
+        "creado_en" => new MongoDB\BSON\UTCDateTime()
+    ];
+    $bulkLogo->update(['tipo' => 'logo'], ['$set' => $logoDoc], ['upsert' => true]);
+    $db->executeBulkWrite("$db_name.multimedia", $bulkLogo);
+    echo "   - Logo Kosmos guardado en coleccion 'multimedia' (BSON Base64) (OK)\n";
+} else {
+    echo "   - [AVISO] Archivo img/logo.png no encontrado.\n";
+}
+
+// 4. Insertar plantillas dinamicas de certificados (Semana IV)
+echo "\n4. Insertando plantillas dinamicas de certificados BSON...\n";
+$plantillas = [
+    [
+        "nombre" => "Plantilla Estandar de Participacion",
+        "tipoCertificado" => "participacion",
+        "encabezado" => "K O S M O S   E V E N T O S   A C A D É M I C O S",
+        "titulo" => "D E   P A R T I C I P A C I Ó N",
+        "subtitulo" => "Se otorga el presente reconocimiento a:",
+        "cuerpoTexto" => "Por haber asistido y aprobado satisfactoriamente el {{tipo}} titulado:",
+        "activo" => true
+    ],
+    [
+        "nombre" => "Plantilla Distinguida para Ponentes",
+        "tipoCertificado" => "ponente",
+        "encabezado" => "K O S M O S   E V E N T O S   A C A D É M I C O S",
+        "titulo" => "D E   P O N E N T E",
+        "subtitulo" => "Se otorga el presente reconocimiento como Ponente a:",
+        "cuerpoTexto" => "Por su valiosa disertacion y contribucion academica en el {{tipo}} titulado:",
+        "activo" => true
+    ],
+    [
+        "nombre" => "Plantilla de Comite Organizador",
+        "tipoCertificado" => "organizacion",
+        "encabezado" => "K O S M O S   E V E N T O S   A C A D É M I C O S",
+        "titulo" => "D E   O R G A N I Z A C I Ó N",
+        "subtitulo" => "Se otorga el presente reconocimiento por coordinacion a:",
+        "cuerpoTexto" => "Por su destacada labor en la organizacion y ejecucion del {{tipo}} titulado:",
+        "activo" => true
+    ]
+];
+
+foreach ($plantillas as $p) {
+    $bulkP = new MongoDB\Driver\BulkWrite;
+    $pDoc = array_merge($p, [
+        "_id" => new MongoDB\BSON\ObjectId(),
+        "fecha_creacion" => new MongoDB\BSON\UTCDateTime()
+    ]);
+    $bulkP->update(['tipoCertificado' => $p['tipoCertificado']], ['$set' => $pDoc], ['upsert' => true]);
+    $db->executeBulkWrite("$db_name.plantillas_certificados", $bulkP);
+    echo "   - Plantilla [{$p['tipoCertificado']}] guardada en 'plantillas_certificados' (BSON) (OK)\n";
+}
+
+echo "\n=== SEED COMPLETADO (Semana I a IV) ===\n";
 echo "\nCredenciales de login:\n";
 echo "  Admin:         admin@kosmos.com       / admin123\n";
 echo "  Organizador:   organizador@kosmos.com / org123\n";
 echo "  Ponente:       ponente@kosmos.com     / pon123\n";
 echo "  Participante:  participante@kosmos.com / par123\n";
-echo "\nRecuerda borrar este archivo despues de ejecutarlo.\n";
+echo "\nRecuerda borrar este archivo despues de ejecutarlo en produccion.\n";
 ?>

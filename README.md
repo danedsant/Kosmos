@@ -95,30 +95,39 @@ Kosmos/
 |   +-- eventos.php               (CRUD eventos con tipoId)
 |   +-- tipos_evento.php          (catalogo de tipos de evento)
 |   +-- inscripciones.php         (CRUD inscripciones)
-|   +-- certificados.php          (CRUD certificados)
+|   +-- certificados.php          (CRUD certificados + vinculacion automatizada XML individual, Semana IV)
+|   +-- multimedia.php            (gestion de activos BSON: logo y QR, Semana IV)
+|   +-- plantillas.php            (catalogo BSON de plantillas de certificados, Semana IV)
 |   +-- consultas.php             (10 preguntas aggregation pipeline)
 |   +-- busqueda.php              (busqueda avanzada + paginacion, Semana III)
 |   +-- fragmentacion_demo.php    (simulacion fragmentacion horizontal, Semana III)
-|   +-- setup_validacion.php      (JSON Schema Validation + indices, Semana III)
+|   +-- setup_validacion.php      (JSON Schema Validation + indices, Semanas III y IV)
 |   +-- middleware/
 |   |   +-- ReglasNegocio.php     (middleware centralizado, Semana III)
-|   +-- exportar_xml.php          (generacion XML dinamico con DTD)
-|   +-- seed.php                  (datos iniciales, borrar despues de usar)
+|   +-- exportar_xml.php          (generacion XML dinamico de eventos con DTD)
+|   +-- seed.php                  (datos iniciales + logo BSON y plantillas)
 +-- public/
-|   +-- index.html                (SPA principal)
+|   +-- index.html                (SPA principal + visor diploma y verificador publico)
 |   +-- login.html                (login con fondo animado)
 |   +-- register.html             (registro de participantes)
 |   +-- css/
-|   |   +-- style.css             (dark mode, glassmorphism)
+|   |   +-- style.css             (dark mode, glassmorphism, estilos diploma neon)
 |   +-- js/
-|       +-- app.js                (logica CRUD y navegacion)
+|       +-- app.js                (logica CRUD, visor diploma, jsPDF y validacion)
 |       +-- auth.js               (manejo de sesiones y permisos)
 |       +-- cosmic.js             (animacion de estrellas canvas)
+|       +-- lib/
+|           +-- jspdf.umd.min.js  (generador de diplomas PDF en cliente, Semana IV)
+|           +-- qrcode.min.js     (generador de codigos QR para diplomas, Semana IV)
 +-- docs/
-    +-- README.md                 (este archivo)
+    +-- README.md
     +-- avance_semana_1_corregido.md
     +-- avance_semana_2.md
     +-- semana_3_reglas.md          (Semana III: validacion, pipelines, busqueda, distribucion)
+    +-- avance_semana_3.md
+    +-- avance_semana_4.md          (Semana IV: multimedia BSON, plantillas, XML y jsPDF)
+    +-- pruebas_semana_4.md         (Guía y matriz de pruebas para validar Semana IV)
+    +-- idea plantilla certificado.md (especificacion estetica del diploma jsPDF)
     +-- semana_1_modelado.md
     +-- semana_2_arquitectura.md
     +-- Proyectos_Base_de_Datos_II_CIVA2026.md
@@ -127,8 +136,9 @@ Kosmos/
 ## Tecnologias
 
 - **Backend**: PHP Vanilla (sin frameworks)
-- **Base de Datos**: MongoDB (NoSQL/Documental)
-- **Frontend**: HTML5, CSS3, JavaScript vanilla
+- **Base de Datos**: MongoDB (NoSQL/Documental) con BSON para documentos y activos multimedia
+- **Frontend**: HTML5, CSS3, JavaScript vanilla (SPA)
+- **PDF & Multimedia**: jsPDF (generación client-side de diplomas vectoriales) y QRCode.js
 - **Comunicacion**: API REST con respuestas JSON
-- **XML**: Generacion dinamica con DTD para validacion
-- **UI**: Dark mode, glassmorphism, animacion canvas
+- **XML**: Generación dinámica con DTD para eventos y certificados individuales vinculados
+- **UI**: Dark mode (#282828), acentos neón (#00D2FF), glassmorphism, animación canvas

@@ -18,6 +18,7 @@
             <nav id="main-nav"></nav>
         </div>
         <div class="header-right">
+            <button class="btn btn-sm" onclick="abrirModalVerificar()" style="margin-right: 12px; background: rgba(0, 210, 255, 0.12); border: 1px solid #00d2ff; color: #00d2ff; font-weight: 500;">Validar Certificado</button>
             <div class="user-info">
                 <span class="user-name" id="user-name"></span>
                 <span class="user-rol" id="user-rol"></span>
@@ -288,6 +289,49 @@
         </div>
     </div>
 
+    <!-- Modal Visor de Diploma Digital (Semana IV) -->
+    <div class="modal-overlay" id="diploma-modal">
+        <div class="modal modal-diploma-wrapper">
+            <div class="modal-actions-top">
+                <div style="display:flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-success btn-sm" id="btn-descargar-pdf" onclick="descargarDiplomaPDF()">
+                        <span>📄</span> Descargar PDF (jsPDF)
+                    </button>
+                    <button class="btn btn-outline btn-sm" id="btn-descargar-xml" onclick="descargarDiplomaXML()">
+                        <span>🏷️</span> Descargar XML
+                    </button>
+                </div>
+                <button class="close-btn" onclick="closeModal('diploma-modal')">&times;</button>
+            </div>
+            <div id="diploma-render-area" class="diploma-render-box">
+                <!-- Se genera dinamicamente con app.js -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Verificador de Certificados (Semana IV) -->
+    <div class="modal-overlay" id="verificar-modal">
+        <div class="modal" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2>Validación Pública de Certificados</h2>
+                <button class="close-btn" onclick="closeModal('verificar-modal')">&times;</button>
+            </div>
+            <div style="padding: 10px 0;">
+                <p style="color: var(--text-secondary); margin-bottom: 12px; font-size: 0.9rem;">
+                    Consulte el código único del certificado para comprobar su autenticidad e integridad en MongoDB y XML:
+                </p>
+                <div class="form-group">
+                    <input type="text" id="verificar-codigo-input" class="form-control" placeholder="Ej: KOSMOS-2026-A1B2C3D4">
+                </div>
+                <button class="btn" style="width: 100%; margin-top: 10px;" onclick="consultarValidacionCertificado()">Verificar Autenticidad</button>
+                <div id="verificar-resultado" style="margin-top: 15px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Librerías cliente Semana 4 -->
+    <script src="js/lib/jspdf.umd.min.js"></script>
+    <script src="js/lib/qrcode.min.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/app.js"></script>
 </body>
