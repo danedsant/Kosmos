@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kosmos - Iniciar Sesion</title>
+    <link rel="icon" href="favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="auth-body">
+    <canvas id="cosmosCanvas"></canvas>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <img src="../img/logo.png" alt="Kosmos" class="auth-logo-img">
+                <span>Kosmos</span>
+            </div>
+            <h2 class="auth-title">Sistema de Gestión de Eventos</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="login-email" class="form-control" required placeholder="tu@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Contrasena</label>
+                    <input type="password" id="login-password" class="form-control" required placeholder="Tu contrasena">
+                </div>
+                <div id="login-error" class="auth-error" style="display:none"></div>
+                <button type="submit" class="btn btn-full">Ingresar</button>
+            </form>
+            <div class="auth-footer">
+                <p>No tienes cuenta? <a href="register.html">Registrate aqui</a></p>
+            </div>
+        </div>
+    </div>
+    <script src="js/cosmic.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorDiv = document.getElementById('login-error');
+            errorDiv.style.display = 'none';
+
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const res = await fetch('../api/auth.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    localStorage.setItem('kosmos_user', JSON.stringify(data.user));
+                    window.location.href = 'index.html';
+                } else {
+                    errorDiv.textContent = data.message;
+                    errorDiv.style.display = 'block';
+                }
+            } catch (err) {
+                errorDiv.textContent = 'Error de conexion.';
+                errorDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

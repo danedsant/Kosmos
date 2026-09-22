@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kosmos - Sistema de Gestion de Eventos</title>
+    <link rel="icon" href="favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <div class="logo">
+                <img src="../img/logo.png" alt="Kosmos" class="logo-img">
+                <span>Kosmos</span>
+            </div>
+            <nav id="main-nav"></nav>
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <span class="user-name" id="user-name"></span>
+                <span class="user-rol" id="user-rol"></span>
+            </div>
+            <button class="btn-logout" onclick="KosmosAuth.logout()">Cerrar sesion</button>
+        </div>
+    </header>
+
+    <main id="main-content"></main>
+
+    <!-- Modal Usuarios -->
+    <div class="modal-overlay" id="user-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="user-modal-title">Nuevo Usuario</h2>
+                <button class="close-btn" onclick="closeModal('user-modal')">&times;</button>
+            </div>
+            <form id="user-form">
+                <input type="hidden" id="u-edit-id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" id="u-nombre" class="form-control" required placeholder="Nombre">
+                    </div>
+                    <div class="form-group">
+                        <label>Apellido</label>
+                        <input type="text" id="u-apellido" class="form-control" required placeholder="Apellido">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Cedula</label>
+                        <input type="text" id="u-cedula" class="form-control" required placeholder="Ej: V-20.123.456">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="u-email" class="form-control" required placeholder="ana@ejemplo.com">
+                    </div>
+                </div>
+                <div class="form-group" id="u-password-group">
+                    <label>Contrasena</label>
+                    <input type="password" id="u-password" class="form-control" placeholder="Minimo 6 caracteres" minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>Rol</label>
+                    <select id="u-rol" class="form-control" required onchange="toggleRolFields()">
+                        <option value="Participante">Participante</option>
+                        <option value="Ponente">Ponente</option>
+                        <option value="Organizador">Organizador</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+                <div id="rol-fields-ponente" style="display:none">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Especialidad</label>
+                            <input type="text" id="u-especialidad" class="form-control" placeholder="Ej: Inteligencia Artificial">
+                        </div>
+                        <div class="form-group">
+                            <label>Institucion</label>
+                            <input type="text" id="u-inst-ponente" class="form-control" placeholder="Ej: UNEG">
+                        </div>
+                    </div>
+                </div>
+                <div id="rol-fields-participante" style="display:none">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Profesion</label>
+                            <input type="text" id="u-profesion" class="form-control" placeholder="Ej: Ingeniera en Sistemas">
+                        </div>
+                        <div class="form-group">
+                            <label>Institucion</label>
+                            <input type="text" id="u-inst-participante" class="form-control" placeholder="Ej: UNEG">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button type="button" class="btn" style="background: transparent; color: var(--text-secondary)" onclick="closeModal('user-modal')">Cancelar</button>
+                    <button type="submit" class="btn">Guardar Usuario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Eventos -->
+    <div class="modal-overlay" id="event-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="event-modal-title">Nuevo Evento</h2>
+                <button class="close-btn" onclick="closeModal('event-modal')">&times;</button>
+            </div>
+            <form id="event-form">
+                <input type="hidden" id="e-edit-id">
+                <input type="hidden" id="e-edit-estado-original">
+                <div class="form-group">
+                    <label>Nombre del Evento</label>
+                    <input type="text" id="e-nombre" class="form-control" required placeholder="Ej: Congreso de IA">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <select id="e-tipo" class="form-control" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <select id="e-estado" class="form-control" required>
+                            <option value="planificado">Planificado</option>
+                            <option value="activo">Activo</option>
+                            <option value="finalizado">Finalizado</option>
+                            <option value="cancelado">Cancelado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Fecha Inicio</label>
+                        <input type="date" id="e-fechaInicio" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha Fin</label>
+                        <input type="date" id="e-fechaFin" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Hora Inicio</label>
+                        <input type="time" id="e-horaInicio" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Hora Fin</label>
+                        <input type="time" id="e-horaFin" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Horas de Duracion</label>
+                    <input type="number" id="e-horasDuracion" class="form-control" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Cupos Disponibles</label>
+                    <input type="number" id="e-cupos" class="form-control" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Nombre del Lugar</label>
+                    <input type="text" id="e-lugar-nombre" class="form-control" placeholder="Ej: Auditorio Principal">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Direccion</label>
+                        <input type="text" id="e-lugar-direccion" class="form-control" placeholder="Ej: Av. Principal">
+                    </div>
+                    <div class="form-group">
+                        <label>Aula</label>
+                        <input type="text" id="e-lugar-aula" class="form-control" placeholder="Ej: Aula A">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Descripcion</label>
+                    <textarea id="e-descripcion" class="form-control" placeholder="Descripcion del evento..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Temas (separados por coma)</label>
+                    <input type="text" id="e-temas" class="form-control" placeholder="Ej: IA, Machine Learning, Deep Learning">
+                </div>
+                <div class="card-actions">
+                    <button type="button" class="btn" style="background: transparent; color: var(--text-secondary)" onclick="closeModal('event-modal')">Cancelar</button>
+                    <button type="submit" class="btn">Guardar Evento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Asignar Ponentes -->
+    <div class="modal-overlay" id="ponentes-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Asignar Ponentes al Evento</h2>
+                <button class="close-btn" onclick="closeModal('ponentes-modal')">&times;</button>
+            </div>
+            <input type="hidden" id="asignar-evento-id">
+            <div class="checkbox-list" id="ponentes-checkbox-list">
+                Cargando ponentes...
+            </div>
+            <div class="card-actions">
+                <button type="button" class="btn" style="background: transparent; color: var(--text-secondary)" onclick="closeModal('ponentes-modal')">Cancelar</button>
+                <button type="button" class="btn" onclick="guardarAsignacionPonentes()">Guardar Asignacion</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Generar Certificado -->
+    <div class="modal-overlay" id="cert-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Generar Certificado</h2>
+                <button class="close-btn" onclick="closeModal('cert-modal')">&times;</button>
+            </div>
+            <form id="cert-form">
+                <input type="hidden" id="cert-eventoId">
+                <input type="hidden" id="cert-participanteId">
+                <div class="form-group">
+                    <label>Tipo de Certificado</label>
+                    <select id="cert-tipo" class="form-control" required>
+                        <option value="participacion">Participacion</option>
+                        <option value="ponente">Ponente</option>
+                        <option value="organizacion">Organizacion</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Horas de Duracion</label>
+                    <input type="number" id="cert-horas" class="form-control" value="0" min="0">
+                </div>
+                <div class="card-actions">
+                    <button type="button" class="btn" style="background: transparent; color: var(--text-secondary)" onclick="closeModal('cert-modal')">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Generar Certificado</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Ponentes (CRUD) -->
+    <div class="modal-overlay" id="ponente-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="ponente-modal-title">Nuevo Ponente</h2>
+                <button class="close-btn" onclick="closeModal('ponente-modal')">&times;</button>
+            </div>
+            <form id="ponente-form">
+                <input type="hidden" id="pon-edit-id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" id="pon-nombre" class="form-control" required placeholder="Nombre">
+                    </div>
+                    <div class="form-group">
+                        <label>Apellido</label>
+                        <input type="text" id="pon-apellido" class="form-control" required placeholder="Apellido">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Cedula</label>
+                        <input type="text" id="pon-cedula" class="form-control" required placeholder="Ej: V-20.123.456">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="pon-email" class="form-control" required placeholder="ponente@ejemplo.com">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Especialidad</label>
+                        <input type="text" id="pon-especialidad" class="form-control" required placeholder="Ej: Inteligencia Artificial">
+                    </div>
+                    <div class="form-group">
+                        <label>Institucion</label>
+                        <input type="text" id="pon-institucion" class="form-control" required placeholder="Ej: UNEG">
+                    </div>
+                </div>
+                <div class="form-group" id="pon-password-group">
+                    <label>Contrasena</label>
+                    <input type="password" id="pon-password" class="form-control" placeholder="Minimo 6 caracteres" minlength="6">
+                </div>
+                <div class="card-actions">
+                    <button type="button" class="btn" style="background: transparent; color: var(--text-secondary)" onclick="closeModal('ponente-modal')">Cancelar</button>
+                    <button type="submit" class="btn">Guardar Ponente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
