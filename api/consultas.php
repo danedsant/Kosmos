@@ -47,9 +47,9 @@ try {
         case 1:
             // 1. Que eventos existen en un mes determinado? ($match por mes + $lookup tipo)
             if (!isset($_GET['mes'])) throw new Exception("Falta parametro 'mes' (formato: YYYY-MM)");
-            $mes = $_GET['mes'];
+            $mes = trim($_GET['mes']);
             $result = ejecutarPipeline($db, $db_name, 'eventos', [
-                ['$addFields' => ['mes' => ['$substr' => ['$fechaInicio', 0, 7]]]],
+                ['$addFields' => ['mes' => ['$substr' => [['$ifNull' => ['$fechaInicio', '']], 0, 7]]]],
                 ['$match' => ['mes' => $mes]],
                 ['$lookup' => [
                     'from' => 'tipos_evento',

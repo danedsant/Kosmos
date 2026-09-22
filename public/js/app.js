@@ -1234,7 +1234,9 @@ function mostrarSelectorMes() {
     const hoy = new Date();
     for (let i = 0; i < 12; i++) {
         const f = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
-        const val = f.toISOString().slice(0, 7);
+        const y = f.getFullYear();
+        const m = String(f.getMonth() + 1).padStart(2, '0');
+        const val = `${y}-${m}`;
         meses.push({ value: val, label: f.toLocaleDateString('es', { year: 'numeric', month: 'long' }) });
     }
 
@@ -1250,6 +1252,7 @@ function mostrarSelectorMes() {
             <button class="btn" onclick="ejecutarDesdeSelector()">Buscar</button>
             <button class="btn btn-secondary" onclick="cancelarSeleccion()">Cancelar</button>
         </div>`;
+    window._consultaPendiente = 1;
 }
 
 async function mostrarSelectorEvento(num) {
