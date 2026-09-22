@@ -107,6 +107,34 @@ switch($method) {
             if(isset($_GET['codigoCertificado'])) {
                 $filter['codigoCertificado'] = $_GET['codigoCertificado'];
             }
+            if(!empty($_GET['tipoEvento'])) {
+                $tipoNombre = trim($_GET['tipoEvento']);
+                if (preg_match('/^[a-f\d]{24}$/i', $tipoNombre)) {
+                    $tipoNombre = resolverTipoNombre($db, $db_name, $tipoNombre);
+                }
+                $evIds = [];
+                try {
+                    $qTipos = new MongoDB\Driver\Query(['nombre' => new MongoDB\BSON\Regex('^' . preg_quote($tipoNombre) . '$', 'i')]);
+                    $cTipos = $db->executeQuery("$db_name.tipos_evento", $qTipos)->toArray();
+                    if (!empty($cTipos)) {
+                        $tipoObjId = (string)$cTipos[0]->_id;
+                        $qEv = new MongoDB\Driver\Query(['tipoId' => $tipoObjId]);
+                        $cEv = $db->executeQuery("$db_name.eventos", $qEv);
+                        foreach ($cEv as $evDoc) {
+                            $evIds[] = (string)$evDoc->_id;
+                        }
+                    }
+                } catch(Exception $e) {}
+
+                $orTipo = [
+                    ['datosEmbebidos.evento.tipo' => new MongoDB\BSON\Regex('^' . preg_quote($tipoNombre) . '$', 'i')]
+                ];
+                if (!empty($evIds)) {
+                    $orTipo[] = ['eventoId' => ['$in' => $evIds]];
+                }
+
+                $filter['$or'] = $orTipo;
+            }
             
             $query = new MongoDB\Driver\Query($filter);
             $cursor = $db->executeQuery($namespace, $query);

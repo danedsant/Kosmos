@@ -143,8 +143,11 @@ views.inscripciones = `
     <div class="section-header">
         <h1>Inscripciones</h1>
     </div>
-    <div class="filters-bar">
-        <select id="filter-insc-evento" class="form-control" onchange="fetchInscripciones()">
+    <div class="filters-bar" style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <select id="filter-insc-tipo-evento" class="form-control" style="min-width: 220px;" onchange="onInscTipoFilterChange()">
+            <option value="">Todos los tipos de evento</option>
+        </select>
+        <select id="filter-insc-evento" class="form-control" style="min-width: 240px;" onchange="fetchInscripciones()">
             <option value="">Todos los eventos</option>
         </select>
     </div>
@@ -153,6 +156,7 @@ views.inscripciones = `
             <thead>
                 <tr>
                     <th>Evento</th>
+                    <th>Tipo Evento</th>
                     <th>Participante</th>
                     <th>Fecha</th>
                     <th>Estado</th>
@@ -170,8 +174,11 @@ views.certificados = `
     <div class="section-header">
         <h1>Certificados</h1>
     </div>
-    <div class="filters-bar">
-        <select id="filter-cert-evento" class="form-control" onchange="fetchCertificados()">
+    <div class="filters-bar" style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <select id="filter-cert-tipo-evento" class="form-control" style="min-width: 220px;" onchange="onCertTipoFilterChange()">
+            <option value="">Todos los tipos de evento</option>
+        </select>
+        <select id="filter-cert-evento" class="form-control" style="min-width: 240px;" onchange="fetchCertificados()">
             <option value="">Todos los eventos</option>
         </select>
     </div>
@@ -181,8 +188,9 @@ views.certificados = `
                 <tr>
                     <th>Codigo</th>
                     <th>Evento</th>
+                    <th>Tipo Evento</th>
                     <th>Participante</th>
-                    <th>Tipo</th>
+                    <th>Rol / Certificado</th>
                     <th>Horas</th>
                     <th>Fecha Emision</th>
                     <th>Acciones</th>
@@ -262,7 +270,7 @@ views.ponente_certificados = `
                 <tr>
                     <th>Codigo</th>
                     <th>Evento</th>
-                    <th>Tipo</th>
+                    <th>Tipo Evento</th>
                     <th>Horas</th>
                     <th>Fecha Emision</th>
                     <th>Acciones</th>
@@ -323,6 +331,7 @@ views.participante_inscripciones = `
             <thead>
                 <tr>
                     <th>Evento</th>
+                    <th>Tipo Evento</th>
                     <th>Fecha Inscripcion</th>
                     <th>Estado</th>
                     <th>Asistencia</th>
@@ -344,7 +353,7 @@ views.participante_certificados = `
                 <tr>
                     <th>Codigo</th>
                     <th>Evento</th>
-                    <th>Tipo</th>
+                    <th>Tipo Evento</th>
                     <th>Horas</th>
                     <th>Fecha Emision</th>
                     <th>Acciones</th>
@@ -985,34 +994,89 @@ window.eliminarPonente = async function(id) {
 
 // ================= INSCRIPCIONES ================= //
 
+async function onInscTipoFilterChange() {
+    await populateInscFiltros(true);
+    await fetchInscripciones();
+}
+window.onInscTipoFilterChange = onInscTipoFilterChange;
+
+async function populateInscFiltros(keepEventoIfPossible = false) {
+    const tipoSel = document.getElementById('filter-insc-tipo-evento');
+    const evSel = document.getElementById('filter-insc-evento');
+    if (!tipoSel || !evSel) return;
+
+    if (tiposCache.length === 0) await fetchTipos();
+    if (eventosCache.length === 0) await loadEventosCache();
+
+    // Poblar select de tipos si tiene solo la opción por defecto
+    if (tipoSel.options.length <= 1) {
+        const curTipo = tipoSel.value;
+        tipoSel.innerHTML = '<option value="">Todos los tipos de evento</option>' +
+            tiposCache.map(t => `<option value="${t.nombre}">${t.nombre}</option>`).join('');
+        tipoSel.value = curTipo;
+    }
+
+    // Filtrar la lista de eventos según el tipo seleccionado
+    const selectedTipo = tipoSel.value;
+    const curEv = evSel.value;
+    
+    let evList = eventosCache;
+    if (selectedTipo) {
+        const tObj = tiposCache.find(t => t.nombre.toLowerCase() === selectedTipo.toLowerCase());
+        if (tObj) {
+            evList = eventosCache.filter(e => e.tipoId === tObj.id);
+        }
+    }
+
+    evSel.innerHTML = '<option value="">Todos los eventos' + (selectedTipo ? ` (${selectedTipo})` : '') + '</option>' +
+        evList.map(e => `<option value="${e.id}">${e.nombre}</option>`).join('');
+
+    if (keepEventoIfPossible && evList.some(e => e.id === curEv)) {
+        evSel.value = curEv;
+    } else {
+        evSel.value = '';
+    }
+}
+
 async function fetchInscripciones() {
     const tbody = document.getElementById('inscripciones-tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
 
-    await loadEventosCache();
-    await loadUsuariosCache();
+    await Promise.all([loadEventosCache(), loadUsuariosCache(), fetchTipos()]);
+    await populateInscFiltros(true);
 
-    const filtroEvento = document.getElementById('filter-insc-evento');
-    let url = 'inscripciones.php';
-    if (filtroEvento && filtroEvento.value) {
-        url += `?eventoId=${filtroEvento.value}`;
-    }
+    const tipoEvento = document.getElementById('filter-insc-tipo-evento')?.value || '';
+    const eventoId = document.getElementById('filter-insc-evento')?.value || '';
 
-    const data = await apiGet(url);
+    const params = new URLSearchParams();
+    if (tipoEvento) params.append('tipoEvento', tipoEvento);
+    if (eventoId) params.append('eventoId', eventoId);
+
+    const queryString = params.toString() ? '?' + params.toString() : '';
+    const data = await apiGet(`inscripciones.php${queryString}`);
+
     if (data.status !== 'success') {
-        tbody.innerHTML = '<tr><td colspan="6" style="color:var(--danger-color)">Error al cargar.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="color:var(--danger-color)">Error al cargar inscripciones.</td></tr>';
         return;
     }
 
     if (data.data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No hay inscripciones.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No se encontraron inscripciones para los filtros aplicados.</td></tr>';
         return;
     }
 
-    tbody.innerHTML = data.data.map(ins => `
+    tbody.innerHTML = data.data.map(ins => {
+        const ev = eventosCache.find(e => e.id === ins.eventoId);
+        const tipoEventoNombre = ev ? getTipoNombre(ev.tipoId) : 'Evento';
+        return `
         <tr>
-            <td>${getEventoNombre(ins.eventoId)}</td>
+            <td><strong>${getEventoNombre(ins.eventoId)}</strong></td>
+            <td>
+                <span class="badge" style="background: rgba(0, 210, 255, 0.12); color: #00d2ff; border: 1px solid rgba(0, 210, 255, 0.3); font-weight: 500;">
+                    ${tipoEventoNombre}
+                </span>
+            </td>
             <td>${getUsuarioNombre(ins.participanteId)}</td>
             <td>${formatDate(ins.fechaInscripcion)}</td>
             <td><span class="badge ${ins.estado}">${ins.estado}</span></td>
@@ -1026,9 +1090,7 @@ async function fetchInscripciones() {
                 ${ins.estado !== 'certificado' ? `<button class="btn btn-sm btn-danger" onclick="cancelarInscripcion('${ins.id}', '${ins.eventoId}')">Cancelar</button>` : ''}
             </td>
         </tr>
-    `).join('');
-
-    await loadEventosFilter('filter-insc-evento');
+    `;}).join('');
 }
 
 window.marcarAsistencia = async function(id, eventoId) {
@@ -1045,41 +1107,115 @@ window.cancelarInscripcion = async function(id, eventoId) {
 
 // ================= CERTIFICADOS ================= //
 
+async function onCertTipoFilterChange() {
+    await populateCertFiltros(true);
+    await fetchCertificados();
+}
+window.onCertTipoFilterChange = onCertTipoFilterChange;
+
+async function populateCertFiltros(keepEventoIfPossible = false) {
+    const tipoSel = document.getElementById('filter-cert-tipo-evento');
+    const evSel = document.getElementById('filter-cert-evento');
+    if (!tipoSel || !evSel) return;
+
+    if (tiposCache.length === 0) await fetchTipos();
+    if (eventosCache.length === 0) await loadEventosCache();
+
+    // Poblar select de tipos si tiene solo la opción por defecto
+    if (tipoSel.options.length <= 1) {
+        const curTipo = tipoSel.value;
+        tipoSel.innerHTML = '<option value="">Todos los tipos de evento</option>' +
+            tiposCache.map(t => `<option value="${t.nombre}">${t.nombre}</option>`).join('');
+        tipoSel.value = curTipo;
+    }
+
+    // Filtrar la lista de eventos según el tipo seleccionado
+    const selectedTipo = tipoSel.value;
+    const curEv = evSel.value;
+    
+    let evList = eventosCache;
+    if (selectedTipo) {
+        const tObj = tiposCache.find(t => t.nombre.toLowerCase() === selectedTipo.toLowerCase());
+        if (tObj) {
+            evList = eventosCache.filter(e => e.tipoId === tObj.id);
+        }
+    }
+
+    evSel.innerHTML = '<option value="">Todos los eventos' + (selectedTipo ? ` (${selectedTipo})` : '') + '</option>' +
+        evList.map(e => `<option value="${e.id}">${e.nombre}</option>`).join('');
+
+    if (keepEventoIfPossible && evList.some(e => e.id === curEv)) {
+        evSel.value = curEv;
+    } else {
+        evSel.value = '';
+    }
+}
+
 async function fetchCertificados() {
     const tbody = document.getElementById('certificados-tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="7">Cargando...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8">Cargando...</td></tr>';
 
-    await loadEventosCache();
-    await loadUsuariosCache();
+    await Promise.all([loadEventosCache(), loadUsuariosCache(), fetchTipos()]);
+    await populateCertFiltros(true);
 
-    const data = await apiGet('certificados.php');
+    const tipoEvento = document.getElementById('filter-cert-tipo-evento')?.value || '';
+    const eventoId = document.getElementById('filter-cert-evento')?.value || '';
+
+    const params = new URLSearchParams();
+    if (tipoEvento) params.append('tipoEvento', tipoEvento);
+    if (eventoId) params.append('eventoId', eventoId);
+
+    const queryString = params.toString() ? '?' + params.toString() : '';
+    const data = await apiGet(`certificados.php${queryString}`);
+
     if (data.status !== 'success') {
-        tbody.innerHTML = '<tr><td colspan="7" style="color:var(--danger-color)">Error al cargar.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="color:var(--danger-color)">Error al cargar certificados.</td></tr>';
         return;
     }
 
     if (data.data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No hay certificados emitidos.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No se encontraron certificados para los filtros aplicados.</td></tr>';
         return;
     }
 
-    tbody.innerHTML = data.data.map(cert => `
-        <tr>
-            <td>${cert.codigoCertificado}</td>
-            <td>${getEventoNombre(cert.eventoId)}</td>
-            <td>${getUsuarioNombre(cert.participanteId || cert.ponenteId)}</td>
-            <td>${cert.tipo}</td>
-            <td>${cert.horasDuracion || 0}</td>
-            <td>${formatDate(cert.fechaEmision)}</td>
-            <td>
-                <button class="btn btn-sm btn-success" onclick="abrirVisualizadorDiploma('${cert.id}')">Ver Diploma</button>
-                <button class="btn btn-sm" onclick="descargarXMLCertificado('${cert.id}')">XML</button>
-            </td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = data.data.map(cert => {
+        const ev = eventosCache.find(e => e.id === cert.eventoId);
+        const tipoEventoNombre = cert.datosEmbebidos?.evento?.tipo || (ev ? getTipoNombre(ev.tipoId) : 'Evento');
+        
+        let rolClass = 'badge';
+        let rolLabel = 'Participación';
+        if (cert.tipo === 'ponente') {
+            rolClass = 'badge ponente';
+            rolLabel = 'Ponente';
+        } else if (cert.tipo === 'organizacion') {
+            rolClass = 'badge organizador';
+            rolLabel = 'Organización';
+        } else {
+            rolClass = 'badge participante';
+            rolLabel = 'Participación';
+        }
 
-    await loadEventosFilter('filter-cert-evento');
+        return `
+            <tr>
+                <td><strong>${cert.codigoCertificado}</strong></td>
+                <td>${getEventoNombre(cert.eventoId)}</td>
+                <td>
+                    <span class="badge" style="background: rgba(0, 210, 255, 0.12); color: #00d2ff; border: 1px solid rgba(0, 210, 255, 0.3); font-weight: 500;">
+                        ${tipoEventoNombre}
+                    </span>
+                </td>
+                <td>${getUsuarioNombre(cert.participanteId || cert.ponenteId)}</td>
+                <td><span class="${rolClass}">${rolLabel}</span></td>
+                <td>${cert.horasDuracion || 0}</td>
+                <td>${formatDate(cert.fechaEmision)}</td>
+                <td>
+                    <button class="btn btn-sm btn-success" onclick="abrirVisualizadorDiploma('${cert.id}')">Ver Diploma</button>
+                    <button class="btn btn-sm" onclick="descargarXMLCertificado('${cert.id}')">XML</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 window.abrirModalCertificado = function(eventoId, participanteId) {
@@ -1140,19 +1276,28 @@ window.inscribirse = async function(eventoId) {
 async function fetchMiInscripciones() {
     const tbody = document.getElementById('mi-inscripciones-tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="5">Cargando...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
 
     await loadEventosCache();
+    if (tiposCache.length === 0) await fetchTipos();
 
     const data = await apiGet(`inscripciones.php?participanteId=${user.id}`);
     if (data.status !== 'success' || data.data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No tienes inscripciones.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No tienes inscripciones.</td></tr>';
         return;
     }
 
-    tbody.innerHTML = data.data.map(ins => `
+    tbody.innerHTML = data.data.map(ins => {
+        const ev = eventosCache.find(e => e.id === ins.eventoId);
+        const tipoEventoNombre = ev ? getTipoNombre(ev.tipoId) : 'Evento';
+        return `
         <tr>
-            <td>${getEventoNombre(ins.eventoId)}</td>
+            <td><strong>${getEventoNombre(ins.eventoId)}</strong></td>
+            <td>
+                <span class="badge" style="background: rgba(0, 210, 255, 0.12); color: #00d2ff; border: 1px solid rgba(0, 210, 255, 0.3); font-weight: 500;">
+                    ${tipoEventoNombre}
+                </span>
+            </td>
             <td>${formatDate(ins.fechaInscripcion)}</td>
             <td><span class="badge ${ins.estado}">${ins.estado}</span></td>
             <td>${ins.asistio ? 'Si' : 'No'}</td>
@@ -1161,7 +1306,7 @@ async function fetchMiInscripciones() {
                 ${ins.estado !== 'certificado' ? `<button class="btn btn-sm btn-danger" onclick="cancelarMiInscripcion('${ins.id}', '${ins.eventoId}')">Cancelar</button>` : ''}
             </td>
         </tr>
-    `).join('');
+    `;}).join('');
 }
 
 window.cancelarMiInscripcion = async function(id, eventoId) {
@@ -1177,6 +1322,7 @@ async function fetchMisCertificados() {
     tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
 
     await loadEventosCache();
+    if (tiposCache.length === 0) await fetchTipos();
 
     const data = await apiGet(`certificados.php?participanteId=${user.id}`);
     if (data.status !== 'success' || data.data.length === 0) {
@@ -1184,11 +1330,18 @@ async function fetchMisCertificados() {
         return;
     }
 
-    tbody.innerHTML = data.data.map(cert => `
+    tbody.innerHTML = data.data.map(cert => {
+        const ev = eventosCache.find(e => e.id === cert.eventoId);
+        const tipoEventoNombre = cert.datosEmbebidos?.evento?.tipo || (ev ? getTipoNombre(ev.tipoId) : 'Evento');
+        return `
         <tr>
-            <td>${cert.codigoCertificado}</td>
+            <td><strong>${cert.codigoCertificado}</strong></td>
             <td>${getEventoNombre(cert.eventoId)}</td>
-            <td>${cert.tipo}</td>
+            <td>
+                <span class="badge" style="background: rgba(0, 210, 255, 0.12); color: #00d2ff; border: 1px solid rgba(0, 210, 255, 0.3); font-weight: 500;">
+                    ${tipoEventoNombre}
+                </span>
+            </td>
             <td>${cert.horasDuracion || 0}</td>
             <td>${cert.fechaEmision ? formatDate(cert.fechaEmision) : 'N/A'}</td>
             <td>
@@ -1196,7 +1349,7 @@ async function fetchMisCertificados() {
                 <button class="btn btn-sm" onclick="descargarXMLCertificado('${cert.id}')">Descargar XML</button>
             </td>
         </tr>
-    `).join('');
+    `;}).join('');
 }
 
 // ================= PONENTE EVENTOS ================= //
@@ -1240,6 +1393,7 @@ async function fetchPonenteCertificados() {
     tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
 
     await loadEventosCache();
+    if (tiposCache.length === 0) await fetchTipos();
 
     const data = await apiGet(`certificados.php?ponenteId=${user.id}`);
     if (data.status !== 'success') {
@@ -1252,11 +1406,18 @@ async function fetchPonenteCertificados() {
         return;
     }
 
-    tbody.innerHTML = data.data.map(cert => `
+    tbody.innerHTML = data.data.map(cert => {
+        const ev = eventosCache.find(e => e.id === cert.eventoId);
+        const tipoEventoNombre = cert.datosEmbebidos?.evento?.tipo || (ev ? getTipoNombre(ev.tipoId) : 'Evento');
+        return `
         <tr>
-            <td>${cert.codigoCertificado}</td>
+            <td><strong>${cert.codigoCertificado}</strong></td>
             <td>${getEventoNombre(cert.eventoId)}</td>
-            <td>${cert.tipo}</td>
+            <td>
+                <span class="badge" style="background: rgba(0, 210, 255, 0.12); color: #00d2ff; border: 1px solid rgba(0, 210, 255, 0.3); font-weight: 500;">
+                    ${tipoEventoNombre}
+                </span>
+            </td>
             <td>${cert.horasDuracion || 0}</td>
             <td>${cert.fechaEmision ? formatDate(cert.fechaEmision) : 'N/A'}</td>
             <td>
@@ -1264,7 +1425,7 @@ async function fetchPonenteCertificados() {
                 <button class="btn btn-sm" onclick="descargarXMLCertificado('${cert.id}')">Descargar XML</button>
             </td>
         </tr>
-    `).join('');
+    `;}).join('');
 }
 
 // ================= EDITAR PERFIL ================= //

@@ -31,6 +31,38 @@ switch($method) {
             if(isset($_GET['participanteId'])) {
                 $filter['participanteId'] = $_GET['participanteId'];
             }
+            if(!empty($_GET['tipoEvento'])) {
+                $tipoNombre = trim($_GET['tipoEvento']);
+                if (preg_match('/^[a-f\d]{24}$/i', $tipoNombre)) {
+                    try {
+                        $qT = new MongoDB\Driver\Query(['_id' => new MongoDB\BSON\ObjectId($tipoNombre)]);
+                        $cT = $db->executeQuery("$db_name.tipos_evento", $qT)->toArray();
+                        if (!empty($cT)) $tipoNombre = $cT[0]->nombre ?? $tipoNombre;
+                    } catch(Exception $eT) {}
+                }
+
+                $evIds = [];
+                try {
+                    $qTipos = new MongoDB\Driver\Query(['nombre' => new MongoDB\BSON\Regex('^' . preg_quote($tipoNombre) . '$', 'i')]);
+                    $cTipos = $db->executeQuery("$db_name.tipos_evento", $qTipos)->toArray();
+                    if (!empty($cTipos)) {
+                        $tipoObjId = (string)$cTipos[0]->_id;
+                        $qEv = new MongoDB\Driver\Query(['tipoId' => $tipoObjId]);
+                        $cEv = $db->executeQuery("$db_name.eventos", $qEv);
+                        foreach ($cEv as $evDoc) {
+                            $evIds[] = (string)$evDoc->_id;
+                        }
+                    }
+                } catch(Exception $e) {}
+
+                if (isset($filter['eventoId'])) {
+                    if (!in_array($filter['eventoId'], $evIds)) {
+                        $filter['eventoId'] = '__none__';
+                    }
+                } else {
+                    $filter['eventoId'] = ['$in' => $evIds];
+                }
+            }
             
             $query = new MongoDB\Driver\Query($filter);
             $cursor = $db->executeQuery($namespace, $query);
