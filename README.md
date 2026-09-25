@@ -107,55 +107,6 @@ http://localhost/kosmos/public/
 
 ---
 
-## 📁 Estructura del Repositorio
-
-```
-Kosmos/
-+-- api/
-|   +-- config/
-|   |   +-- database.php          (Conexión nativa a MongoDB)
-|   +-- auth.php                  (Login, registro, sesiones)
-|   +-- usuarios.php              (CRUD de usuarios con 4 roles)
-|   +-- eventos.php               (CRUD de eventos con control de estados)
-|   +-- tipos_evento.php          (Catálogo de tipos de evento)
-|   +-- inscripciones.php         (Gestión de inscripciones y asistencia)
-|   +-- certificados.php          (Generación y vinculación automatizada BSON/XML individual)
-|   +-- multimedia.php            (Gestión de activos BSON: Logo y QR)
-|   +-- plantillas.php            (Catálogo BSON de plantillas de certificados)
-|   +-- consultas.php             (10 pipelines de agregación oficiales)
-|   +-- busqueda.php              (Búsqueda avanzada de eventos)
-|   +-- fragmentacion_demo.php    (Simulación de fragmentación horizontal de datos)
-|   +-- setup_validacion.php      (Esquemas $jsonSchema e índices para todas las colecciones)
-|   +-- middleware/
-|   |   +-- ReglasNegocio.php     (Validaciones centralizadas y máquina de estados)
-|   +-- exportar_xml.php          (Exportación de evento global con DTD)
-|   +-- seed.php                  (Siembra de usuarios, tipos, logo BSON y plantillas)
-+-- public/
-|   +-- index.html                (SPA principal + visor de diploma y verificador público)
-|   +-- login.html                (Inicio de sesión)
-|   +-- register.html             (Registro de participantes)
-|   +-- css/
-|   |   +-- style.css             (Dark mode, glassmorphism y estilos del diploma neón)
-|   +-- js/
-|       +-- app.js                (Lógica frontend, visor de diploma, jsPDF y validación)
-|       +-- auth.js               (Control de permisos por rol)
-|       +-- cosmic.js             (Fondo canvas animado)
-|       +-- lib/
-|           +-- jspdf.umd.min.js  (Librería client-side para diplomas en PDF)
-|           +-- qrcode.min.js     (Generador de códigos QR para diplomas)
-+-- docs/
-    +-- README.md                 (Documentación general)
-    +-- avance_semana_1_corregido.md (Semana I: Modelado, DTD y XPath)
-    +-- avance_semana_2.md          (Semana II: Persistencia NoSQL e Interfaz Web)
-    +-- avance_semana_3.md          (Semana III: Reglas de Negocio, Agregaciones y Búsqueda)
-    +-- semana_3_reglas.md          (Detalle de validaciones BSON y pipelines)
-    +-- avance_semana_4.md          (Semana IV: Multimedia BSON, XML individual y jsPDF)
-    +-- pruebas_semana_4.md         (Guía y matriz de casos de prueba de Semana IV)
-    +-- idea plantilla certificado.md (Especificación estética de diplomas en PDF)
-```
-
----
-
 ## 📄 Documentación
 
 | Documento | Descripción |
@@ -172,3 +123,54 @@ Kosmos/
 * **Frontend:** Single Page Application (SPA) en HTML5, CSS3 moderno (Dark mode `#282828` con acentos neón `#00D2FF` y glassmorphism) y JavaScript Vanilla.
 * **Motor de Generacion de Certificados:** `jsPDF` en cliente para renderizado vectorial en formato A4 horizontal y `QRCode.js` para validación digital autónoma.
 * **Integración Documental:** XML con especificación DTD y consultas XPath para interoperabilidad documental.
+
+---
+
+## 📁 Estructura del Repositorio
+
+> Corresponde a los archivos versionados en git. Se excluyen `docs/`, `test/`, `node_modules/` y `.env` según `.gitignore`.
+
+```
+Kosmos/
+├── api/
+│   ├── config/
+│   │   └── database.php          (Conexión nativa a MongoDB)
+│   ├── middleware/
+│   │   └── ReglasNegocio.php     (Validaciones centralizadas y máquina de estados)
+│   ├── auth.php                  (Login, registro, sesiones)
+│   ├── usuarios.php              (CRUD de usuarios con 4 roles)
+│   ├── eventos.php               (CRUD de eventos con control de estados)
+│   ├── tipos_evento.php          (Catálogo de tipos de evento)
+│   ├── inscripciones.php         (Gestión de inscripciones y asistencia)
+│   ├── certificados.php          (Generación y vinculación automatizada BSON/XML individual)
+│   ├── multimedia.php            (Gestión de activos BSON: Logo y QR)
+│   ├── plantillas.php            (Catálogo BSON de plantillas de certificados)
+│   ├── consultas.php             (10 pipelines de agregación oficiales)
+│   ├── busqueda.php              (Búsqueda avanzada de eventos)
+│   ├── exportar_xml.php          (Exportación de evento global con DTD)
+│   ├── cron_eventos.php          (Auto-ajuste de estados planificado → activo → finalizado)
+│   ├── fragmentacion_demo.php    (Simulación de fragmentación horizontal de datos)
+│   ├── setup_validacion.php      (Esquemas $jsonSchema e índices para todas las colecciones)
+│   └── seed.php                  (Siembra de usuarios, tipos, logo BSON y plantillas)
+├── public/
+│   ├── index.html                (SPA principal + visor de diploma y verificador público)
+│   ├── login.html                (Inicio de sesión)
+│   ├── register.html             (Registro de participantes)
+│   ├── favicon.ico               (Icono del sitio)
+│   ├── css/
+│   │   └── style.css             (Dark mode, glassmorphism y estilos del diploma neón)
+│   └── js/
+│       ├── app.js                (Lógica frontend, visor de diploma, jsPDF y validación)
+│       ├── auth.js               (Control de permisos por rol)
+│       ├── cosmic.js             (Fondo canvas animado)
+│       └── lib/
+│           ├── jspdf.umd.min.js  (Librería client-side para diplomas en PDF)
+│           └── qrcode.min.js     (Generador de códigos QR para diplomas)
+├── Documentacion/
+│   ├── Informe_Tecnico.md        (Arquitectura, diseño BD, endpoints y código)
+│   └── Informe Ejecutivo.md      (Resumen gerencial, objetivos y alcance)
+├── img/
+│   └── logo.png                  (Logo institucional usado en BSON y diplomas)
+├── .gitignore                    (Excluye node_modules/, test/, docs/, .env)
+└── README.md                     (Este archivo)
+```
