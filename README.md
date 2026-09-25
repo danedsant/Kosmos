@@ -156,6 +156,15 @@ Kosmos/
 
 ---
 
+## 📄 Documentación
+
+| Documento | Descripción |
+| :--- | :--- |
+| [Informe Técnico](Documentacion/Informe_Tecnico.md) | Arquitectura, diseño de base de datos, endpoints y estructura del código |
+| [Informe Ejecutivo](Documentacion/Informe%20Ejecutivo.md) | Resumen gerencial, objetivos del proyecto y alcance funcional |
+
+---
+
 ## 💻 Tecnologías Utilizadas
 
 * **Motor de Base de Datos:** MongoDB Community Server (NoSQL / Documental) utilizando formato BSON para documentos jerárquicos y activos multimedia en Base64.
